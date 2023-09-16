@@ -4,33 +4,41 @@ void main() {
   runApp(const SheetMusicApp());
 }
 
+//The class describing the main app
 class SheetMusicApp extends StatelessWidget {
   const SheetMusicApp({super.key});
 
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    //Use Material Design based App
     return MaterialApp(
-      title: 'Sheet Music App',
+      //Set the name of the app window
+      title: 'Sheet Music Scanner',
+      //Set theme properties that are propogated to all widgets
       theme: ThemeData(
+        //Set colourscheme
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.lightGreen),
+        //Use Material3 widgets instead of Material2 widgets
         useMaterial3: true,
       ),
+      //The start of the widget tree for the actual app
       home: const Scaffold(
-        bottomNavigationBar: BottomTabBar(),
+        bottomNavigationBar: TabBar(),
       ),
     );
   }
 }
 
-class BottomTabBar extends StatefulWidget {
-  const BottomTabBar({super.key});
+//This is the widget that manages the tabs
+class TabBar extends StatefulWidget {
+  const TabBar({super.key});
 
   @override
-  State<BottomTabBar> createState() => _BottomTabBarState();
+  State<TabBar> createState() => _TabBarState();
 }
 
-class _BottomTabBarState extends State<BottomTabBar> {
+class _TabBarState extends State<TabBar> {
   int currentPageIndex = 0;
 
   @override
@@ -42,31 +50,36 @@ class _BottomTabBarState extends State<BottomTabBar> {
               currentPageIndex = index;
             });
           },
+          //The icons and text shown for each tab
           destinations: const [
+            //Home Tab
             NavigationDestination(
               icon: Icon(Icons.home_outlined),
               selectedIcon: Icon(Icons.home),
               label: 'Home',
             ),
+            //Files Tab
             NavigationDestination(
               icon: Icon(Icons.folder_outlined),
               selectedIcon: Icon(Icons.folder),
               label: 'Files',
             ),
+            //Scan Tab
             NavigationDestination(
               icon: Icon(Icons.camera_outlined),
               selectedIcon: Icon(Icons.camera),
               label: 'Scan',
             ),
+            //View Tab
             NavigationDestination(
               icon: Icon(Icons.note_outlined),
               selectedIcon: Icon(Icons.note),
               label: 'View',
             ),
           ],
-          selectedIndex: currentPageIndex,
         ),
         body: [
+          //The tab contents that will be displayed
           const HomeTab(),
           const FileTab(),
           const ScanTab(),
@@ -78,9 +91,9 @@ class _BottomTabBarState extends State<BottomTabBar> {
 class HomeTab extends StatelessWidget {
   const HomeTab({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    //Placeholder Content
     return Container(
       alignment: Alignment.center,
       child: const Text('Page 1'),
@@ -91,9 +104,9 @@ class HomeTab extends StatelessWidget {
 class FileTab extends StatelessWidget {
   const FileTab({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    //Placeholder Content
     return Container(
       alignment: Alignment.center,
       child: const Text('Page 2'),
@@ -104,9 +117,9 @@ class FileTab extends StatelessWidget {
 class ScanTab extends StatelessWidget {
   const ScanTab({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    //Placeholder Content
     return Container(
       alignment: Alignment.center,
       child: const Text('Page 3'),
@@ -117,9 +130,9 @@ class ScanTab extends StatelessWidget {
 class ViewTab extends StatelessWidget {
   const ViewTab({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    //Placeholder Content
     return Container(
       alignment: Alignment.center,
       child: const Text('Page 4'),
