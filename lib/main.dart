@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sheet_music_app/tab_pages/files.dart';
 import 'package:sheet_music_app/tab_pages/home.dart';
 import 'package:sheet_music_app/tab_pages/scan.dart';
 import 'package:sheet_music_app/tab_pages/view.dart';
+
 import 'state.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(statusBarColor: Colors.transparent));
+  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   runApp(const SheetMusicApp());
 }
 
@@ -30,16 +36,19 @@ class SheetMusicApp extends StatelessWidget {
           useMaterial3: true,
         ),
         //The start of the widget tree for the actual app
-        home: const Scaffold(
-          bottomNavigationBar: TabBar(),
-        ),
+        home: const TabBar(),
       ),
     );
   }
 }
 
 //Each of the tabs
-enum AppPages { homeTab, filesTab, scanTab, viewTab }
+enum AppPages {
+  homeTab,
+  filesTab,
+  scanTab,
+  viewTab,
+}
 
 //Tab controller
 class TabBar extends ConsumerWidget {

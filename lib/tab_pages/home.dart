@@ -20,14 +20,16 @@ class HomeTab extends ConsumerWidget {
             //This is the Saved Sheet Music Button which, when pressed switches,
             //to the Files Tab
             child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                textStyle: Theme.of(context).textTheme.labelLarge,
+              ),
               //Set currentPage to the files tab
               onPressed: () {
                 ref.read(currentPageProvider.notifier).state =
                     AppPages.filesTab;
               },
-              child: Text(
+              child: const Text(
                 'Saved Sheet Music',
-                style: Theme.of(context).textTheme.labelLarge,
               ),
             ),
           ),
@@ -36,14 +38,16 @@ class HomeTab extends ConsumerWidget {
             //This is the Scan Sheet Music Button which, when pressed switches,
             //to the Scan Tab
             child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  textStyle: Theme.of(context).textTheme.labelLarge,
+                ),
                 onPressed: () {
                   //Set currentPage to the scan tab
                   ref.read(currentPageProvider.notifier).state =
                       AppPages.scanTab;
                 },
-                child: Text(
+                child: const Text(
                   'Scan Sheet Music',
-                  style: Theme.of(context).textTheme.labelLarge,
                 )),
           ),
         ],
