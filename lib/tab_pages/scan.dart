@@ -194,13 +194,14 @@ class CameraCaptureButton extends ConsumerWidget {
               takePicture().then((path) {
                 //Add image to temporarySheetMusicImages
                 ref
-                    .read(temporarySheetMusicImages.notifier)
+                    .read(temporarySheetMusicImageProvider.notifier)
                     .state[partNumber]
-                    .add(Image.file(File(path)));
+                    .add(File(path));
+
                 //Log the entire list for testing purposes
                 dev.log(
-                  "${ref.read(temporarySheetMusicImages).map((e) {
-                    return e.map((e) => e.toStringShort());
+                  "${ref.read(temporarySheetMusicImageProvider).map((e) {
+                    return e.map((e) => e.path);
                   })}",
                   name: "Sheet Music Images",
                 );
@@ -232,7 +233,7 @@ class CameraCaptureButton extends ConsumerWidget {
                             incrementPartNumber();
                             //Add new part list
                             ref
-                                .read(temporarySheetMusicImages.notifier)
+                                .read(temporarySheetMusicImageProvider.notifier)
                                 .state
                                 .add([]);
                             //Exit dialog to show camera

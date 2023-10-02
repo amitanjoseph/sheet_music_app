@@ -129,7 +129,7 @@ enum class Length(val raw: Int) {
 }
 /** Generated interface from Pigeon that represents a handler of messages from Flutter. */
 interface ScannerAPI {
-  fun message(): String
+  fun scan(imagePath: String): String
 
   companion object {
     /** The codec used by ScannerAPI. */
@@ -140,12 +140,14 @@ interface ScannerAPI {
     @Suppress("UNCHECKED_CAST")
     fun setUp(binaryMessenger: BinaryMessenger, api: ScannerAPI?) {
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.sheet_music_app.ScannerAPI.message", codec)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.sheet_music_app.ScannerAPI.scan", codec)
         if (api != null) {
-          channel.setMessageHandler { _, reply ->
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val imagePathArg = args[0] as String
             var wrapped: List<Any?>
             try {
-              wrapped = listOf<Any?>(api.message())
+              wrapped = listOf<Any?>(api.scan(imagePathArg))
             } catch (exception: Throwable) {
               wrapped = wrapError(exception)
             }

@@ -91,12 +91,12 @@ class ScannerAPI {
 
   static const MessageCodec<Object?> codec = StandardMessageCodec();
 
-  Future<String> message() async {
+  Future<String> scan(String arg_imagePath) async {
     final BasicMessageChannel<Object?> channel = BasicMessageChannel<Object?>(
-        'dev.flutter.pigeon.sheet_music_app.ScannerAPI.message', codec,
+        'dev.flutter.pigeon.sheet_music_app.ScannerAPI.scan', codec,
         binaryMessenger: _binaryMessenger);
     final List<Object?>? replyList =
-        await channel.send(null) as List<Object?>?;
+        await channel.send(<Object?>[arg_imagePath]) as List<Object?>?;
     if (replyList == null) {
       throw PlatformException(
         code: 'channel-error',

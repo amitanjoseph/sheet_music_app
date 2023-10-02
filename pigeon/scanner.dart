@@ -1,5 +1,4 @@
 // ignore_for_file: constant_identifier_names
-// import 'package:flutter/widgets.dart';
 import 'package:pigeon/pigeon.dart';
 
 //The pitch of a note - from A0 to C8
@@ -85,10 +84,9 @@ class Note {
   final Length length;
   const Note(this.pitch, this.length);
 }
-// List<Note> scanImage(Image image);
 
 //The api for scanning images
 @HostApi()
 abstract class ScannerAPI {
-  String message();
+  String scan(String imagePath);
 }

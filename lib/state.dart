@@ -1,5 +1,6 @@
 //The current open page
-import 'package:flutter/widgets.dart';
+import 'dart:io';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'main.dart';
@@ -9,4 +10,4 @@ final currentPageProvider = StateProvider((ref) => AppPages.homeTab);
 
 //Variable for storing the newly scanned sheet music
 //images before they are saved
-final temporarySheetMusicImages = StateProvider((ref) => [<Image>[]]);
+final temporarySheetMusicImageProvider = StateProvider((ref) => [<File>[]]);
