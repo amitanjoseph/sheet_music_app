@@ -37,6 +37,7 @@ class SheetMusicApp extends StatelessWidget {
         ),
         //The start of the widget tree for the actual app
         home: const TabBar(),
+        debugShowCheckedModeBanner: false,
       ),
     );
   }

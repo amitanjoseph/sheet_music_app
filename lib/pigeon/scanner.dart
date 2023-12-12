@@ -11,62 +11,55 @@ import 'package:flutter/services.dart';
 enum Pitch {
   A0,
   B0,
-  C0,
-  D0,
-  E0,
-  F0,
-  G0,
-  A1,
-  B1,
   C1,
   D1,
   E1,
   F1,
   G1,
-  A2,
-  B2,
+  A1,
+  B1,
   C2,
   D2,
   E2,
   F2,
   G2,
-  A3,
-  B3,
+  A2,
+  B2,
   C3,
   D3,
   E3,
   F3,
   G3,
-  A4,
-  B4,
+  A3,
+  B3,
   C4,
   D4,
   E4,
   F4,
   G4,
-  A5,
-  B5,
+  A4,
+  B4,
   C5,
   D5,
   E5,
   F5,
   G5,
-  A6,
-  B6,
+  A5,
+  B5,
   C6,
   D6,
   E6,
   F6,
   G6,
-  A7,
-  B7,
+  A6,
+  B6,
   C7,
   D7,
   E7,
   F7,
   G7,
-  A8,
-  B8,
+  A7,
+  B7,
   C8,
 }
 
@@ -81,6 +74,86 @@ enum Length {
   hemidemisemiquaver,
 }
 
+class Note {
+  Note({
+    required this.pitch,
+    required this.length,
+  });
+
+  Pitch pitch;
+
+  Length length;
+
+  Object encode() {
+    return <Object?>[
+      pitch.index,
+      length.index,
+    ];
+  }
+
+  static Note decode(Object result) {
+    result as List<Object?>;
+    return Note(
+      pitch: Pitch.values[result[0]! as int],
+      length: Length.values[result[1]! as int],
+    );
+  }
+}
+
+class Return {
+  Return({
+    required this.notes,
+    required this.path,
+  });
+
+  List<Note?> notes;
+
+  String path;
+
+  Object encode() {
+    return <Object?>[
+      notes,
+      path,
+    ];
+  }
+
+  static Return decode(Object result) {
+    result as List<Object?>;
+    return Return(
+      notes: (result[0] as List<Object?>?)!.cast<Note?>(),
+      path: result[1]! as String,
+    );
+  }
+}
+
+class _ScannerAPICodec extends StandardMessageCodec {
+  const _ScannerAPICodec();
+  @override
+  void writeValue(WriteBuffer buffer, Object? value) {
+    if (value is Note) {
+      buffer.putUint8(128);
+      writeValue(buffer, value.encode());
+    } else if (value is Return) {
+      buffer.putUint8(129);
+      writeValue(buffer, value.encode());
+    } else {
+      super.writeValue(buffer, value);
+    }
+  }
+
+  @override
+  Object? readValueOfType(int type, ReadBuffer buffer) {
+    switch (type) {
+      case 128: 
+        return Note.decode(readValue(buffer)!);
+      case 129: 
+        return Return.decode(readValue(buffer)!);
+      default:
+        return super.readValueOfType(type, buffer);
+    }
+  }
+}
+
 class ScannerAPI {
   /// Constructor for [ScannerAPI].  The [binaryMessenger] named argument is
   /// available for dependency injection.  If it is left null, the default
@@ -89,9 +162,9 @@ class ScannerAPI {
       : _binaryMessenger = binaryMessenger;
   final BinaryMessenger? _binaryMessenger;
 
-  static const MessageCodec<Object?> codec = StandardMessageCodec();
+  static const MessageCodec<Object?> codec = _ScannerAPICodec();
 
-  Future<String> scan(String arg_imagePath) async {
+  Future<Return> scan(String arg_imagePath) async {
     final BasicMessageChannel<Object?> channel = BasicMessageChannel<Object?>(
         'dev.flutter.pigeon.sheet_music_app.ScannerAPI.scan', codec,
         binaryMessenger: _binaryMessenger);
@@ -114,7 +187,7 @@ class ScannerAPI {
         message: 'Host platform returned null value for non-null return value.',
       );
     } else {
-      return (replyList[0] as String?)!;
+      return (replyList[0] as Return?)!;
     }
   }
 }

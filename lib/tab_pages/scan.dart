@@ -3,8 +3,10 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:camera/camera.dart';
+import 'package:crop_your_image/crop_your_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image/image.dart' as im;
 import 'package:sheet_music_app/main.dart';
 import 'package:sheet_music_app/state.dart';
 
@@ -91,17 +93,13 @@ class _CameraState extends ConsumerState<Camera> {
     setState(() {
       flash = !flash;
     });
-    if (flash) {
-      widget.controller.setFlashMode(FlashMode.always);
-    } else {
-      widget.controller.setFlashMode(FlashMode.off);
-    }
   }
 
   Future<String> takePicture() async {
     //Lock taking picture
     takingPicture.value = true;
     //Take picture and store reference in image
+    widget.controller.setFlashMode(flash ? FlashMode.always : FlashMode.off);
     final image = await widget.controller.takePicture();
     // //Get path to application documents directory
     // final dir = await getApplicationDocumentsDirectory();
@@ -172,6 +170,80 @@ class _CameraState extends ConsumerState<Camera> {
   }
 }
 
+//Widget for Cropping the snapped picture
+class CropWidget extends StatefulWidget {
+  final String path;
+  const CropWidget(this.path, {super.key});
+
+  @override
+  State<CropWidget> createState() => _CropWidgetState();
+}
+
+class _CropWidgetState extends State<CropWidget> {
+  final controller = CropController();
+  late im.Image image;
+  double angle = 0;
+  @override
+  void initState() {
+    //Load the taken picture
+    image = im.decodeImage(File(widget.path).readAsBytesSync())!;
+    // //Rotate it 90° anticlockwise
+    // this.image = im.copyRotate(image, angle: 270);
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Flexible(
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            //Crop Widget
+            child: Crop(
+              key: ValueKey(angle),
+              image: im.encodeJpg(image),
+              controller: controller,
+              onCropped: (image) {
+                dev.log(angle.toString(), name: "ANGLE");
+                //Write cropped image to disk and exit Crop widget
+                File(widget.path).writeAsBytesSync(image, flush: true);
+                Navigator.of(context).pop();
+              },
+            ),
+          ),
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            //Button to Rotate Image
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  image = im.copyRotate(
+                    image,
+                    angle: 90,
+                  );
+                  angle += 90;
+                });
+              },
+              child: const Text("Rotate"),
+            ),
+            //Button to Crop the Image
+            ElevatedButton(
+              onPressed: () {
+                controller.crop();
+              },
+              child: const Text("Crop"),
+            )
+          ],
+        )
+      ],
+    );
+  }
+}
+
 class CameraCaptureButton extends ConsumerWidget {
   final bool pictureBeingTaken;
   final Future<String> Function() takePicture;
@@ -191,7 +263,13 @@ class CameraCaptureButton extends ConsumerWidget {
       onPressed: !pictureBeingTaken
           ? () {
               //Take picture
-              takePicture().then((path) {
+              takePicture().then((path) async {
+                //Display Crop Widget
+                final nav = Navigator.of(context);
+                await nav.push(MaterialPageRoute(
+                  builder: ((context) => CropWidget(path)),
+                ));
+
                 //Add image to temporarySheetMusicImages
                 ref
                     .read(temporarySheetMusicImageProvider.notifier)
@@ -206,56 +284,59 @@ class CameraCaptureButton extends ConsumerWidget {
                   name: "Sheet Music Images",
                 );
                 //Show dialog for next required actions
-                showDialog(
-                  //Prevent the dialog from being dismissed by pressing
-                  //outside it
-                  barrierDismissible: false,
-                  context: context,
-                  builder: (builder) {
-                    return AlertDialog(
-                      title: const Text("Photo Taken"),
-                      content: const Text(
-                          "Do you want to continue adding to the current part, add to a new on or have you finished?"),
-                      actions: [
-                        //Button to continue scanning pictures for the
-                        //current part
-                        TextButton(
-                          onPressed: () {
-                            //Exit dialog to show camera
-                            Navigator.of(context).pop();
-                          },
-                          child: const Text("Continue"),
-                        ),
-                        //Button to make a new part
-                        TextButton(
-                          onPressed: () {
-                            //Increment the current part number being added to
-                            incrementPartNumber();
-                            //Add new part list
-                            ref
-                                .read(temporarySheetMusicImageProvider.notifier)
-                                .state
-                                .add([]);
-                            //Exit dialog to show camera
-                            Navigator.of(context).pop();
-                          },
-                          child: const Text("New Part"),
-                        ),
-                        //Button to complete capturing and start scanning
-                        TextButton(
-                          onPressed: () {
-                            //Exit dialog
-                            Navigator.of(context).pop();
-                            //Show view tab
-                            ref.read(currentPageProvider.notifier).state =
-                                AppPages.viewTab;
-                          },
-                          child: const Text("Done"),
-                        ),
-                      ],
-                    );
-                  },
-                );
+                if (context.mounted) {
+                  showDialog(
+                    //Prevent the dialog from being dismissed by pressing
+                    //outside it
+                    barrierDismissible: false,
+                    context: context,
+                    builder: (builder) {
+                      return AlertDialog(
+                        title: const Text("Photo Taken"),
+                        content: const Text(
+                            "Do you want to continue adding to the current part, add to a new on or have you finished?"),
+                        actions: [
+                          //Button to continue scanning pictures for the
+                          //current part
+                          TextButton(
+                            onPressed: () {
+                              //Exit dialog to show camera
+                              Navigator.of(context).pop();
+                            },
+                            child: const Text("Continue"),
+                          ),
+                          //Button to make a new part
+                          TextButton(
+                            onPressed: () {
+                              //Increment the current part number being added to
+                              incrementPartNumber();
+                              //Add new part list
+                              ref
+                                  .read(
+                                      temporarySheetMusicImageProvider.notifier)
+                                  .state
+                                  .add([]);
+                              //Exit dialog to show camera
+                              Navigator.of(context).pop();
+                            },
+                            child: const Text("New Part"),
+                          ),
+                          //Button to complete capturing and start scanning
+                          TextButton(
+                            onPressed: () {
+                              //Exit dialog
+                              Navigator.of(context).pop();
+                              //Show view tab
+                              ref.read(currentPageProvider.notifier).state =
+                                  AppPages.viewTab;
+                            },
+                            child: const Text("Done"),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                }
               });
             }
           : () {},

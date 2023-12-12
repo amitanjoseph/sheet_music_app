@@ -46,63 +46,56 @@ class FlutterError (
 enum class Pitch(val raw: Int) {
   A0(0),
   B0(1),
-  C0(2),
-  D0(3),
-  E0(4),
-  F0(5),
-  G0(6),
+  C1(2),
+  D1(3),
+  E1(4),
+  F1(5),
+  G1(6),
   A1(7),
   B1(8),
-  C1(9),
-  D1(10),
-  E1(11),
-  F1(12),
-  G1(13),
+  C2(9),
+  D2(10),
+  E2(11),
+  F2(12),
+  G2(13),
   A2(14),
   B2(15),
-  C2(16),
-  D2(17),
-  E2(18),
-  F2(19),
-  G2(20),
+  C3(16),
+  D3(17),
+  E3(18),
+  F3(19),
+  G3(20),
   A3(21),
   B3(22),
-  C3(23),
-  D3(24),
-  E3(25),
-  F3(26),
-  G3(27),
+  C4(23),
+  D4(24),
+  E4(25),
+  F4(26),
+  G4(27),
   A4(28),
   B4(29),
-  C4(30),
-  D4(31),
-  E4(32),
-  F4(33),
-  G4(34),
+  C5(30),
+  D5(31),
+  E5(32),
+  F5(33),
+  G5(34),
   A5(35),
   B5(36),
-  C5(37),
-  D5(38),
-  E5(39),
-  F5(40),
-  G5(41),
+  C6(37),
+  D6(38),
+  E6(39),
+  F6(40),
+  G6(41),
   A6(42),
   B6(43),
-  C6(44),
-  D6(45),
-  E6(46),
-  F6(47),
-  G6(48),
+  C7(44),
+  D7(45),
+  E7(46),
+  F7(47),
+  G7(48),
   A7(49),
   B7(50),
-  C7(51),
-  D7(52),
-  E7(53),
-  F7(54),
-  G7(55),
-  A8(56),
-  B8(57),
-  C8(58);
+  C8(51);
 
   companion object {
     fun ofRaw(raw: Int): Pitch? {
@@ -127,14 +120,90 @@ enum class Length(val raw: Int) {
     }
   }
 }
+
+/** Generated class from Pigeon that represents data sent in messages. */
+data class Note (
+  val pitch: Pitch,
+  val length: Length
+
+) {
+  companion object {
+    @Suppress("UNCHECKED_CAST")
+    fun fromList(list: List<Any?>): Note {
+      val pitch = Pitch.ofRaw(list[0] as Int)!!
+      val length = Length.ofRaw(list[1] as Int)!!
+      return Note(pitch, length)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf<Any?>(
+      pitch.raw,
+      length.raw,
+    )
+  }
+}
+
+/** Generated class from Pigeon that represents data sent in messages. */
+data class Return (
+  val notes: List<Note?>,
+  val path: String
+
+) {
+  companion object {
+    @Suppress("UNCHECKED_CAST")
+    fun fromList(list: List<Any?>): Return {
+      val notes = list[0] as List<Note?>
+      val path = list[1] as String
+      return Return(notes, path)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf<Any?>(
+      notes,
+      path,
+    )
+  }
+}
+@Suppress("UNCHECKED_CAST")
+private object ScannerAPICodec : StandardMessageCodec() {
+  override fun readValueOfType(type: Byte, buffer: ByteBuffer): Any? {
+    return when (type) {
+      128.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          Note.fromList(it)
+        }
+      }
+      129.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          Return.fromList(it)
+        }
+      }
+      else -> super.readValueOfType(type, buffer)
+    }
+  }
+  override fun writeValue(stream: ByteArrayOutputStream, value: Any?)   {
+    when (value) {
+      is Note -> {
+        stream.write(128)
+        writeValue(stream, value.toList())
+      }
+      is Return -> {
+        stream.write(129)
+        writeValue(stream, value.toList())
+      }
+      else -> super.writeValue(stream, value)
+    }
+  }
+}
+
 /** Generated interface from Pigeon that represents a handler of messages from Flutter. */
 interface ScannerAPI {
-  fun scan(imagePath: String): String
+  fun scan(imagePath: String): Return
 
   companion object {
     /** The codec used by ScannerAPI. */
     val codec: MessageCodec<Any?> by lazy {
-      StandardMessageCodec()
+      ScannerAPICodec
     }
     /** Sets up an instance of `ScannerAPI` to handle messages through the `binaryMessenger`. */
     @Suppress("UNCHECKED_CAST")

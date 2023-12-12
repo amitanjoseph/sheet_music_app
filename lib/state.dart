@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'main.dart';
 
 //State of current open tab
-final currentPageProvider = StateProvider((ref) => AppPages.homeTab);
+final currentPageProvider = StateProvider((ref) => AppPages.scanTab);
 
 //Variable for storing the newly scanned sheet music
 //images before they are saved
