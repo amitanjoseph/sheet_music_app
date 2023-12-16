@@ -20,6 +20,27 @@ double bpmToSecondsPerBeat(int bpm) {
   return 60 / bpm;
 }
 
+double lengthToBeats(Length length) {
+  switch (length) {
+    case Length.breve:
+      return 8;
+    case Length.semibreve:
+      return 4;
+    case Length.minim:
+      return 2;
+    case Length.crotchet:
+      return 1;
+    case Length.quaver:
+      return 0.5;
+    case Length.semiquaver:
+      return 0.25;
+    case Length.demisemiquaver:
+      return 0.125;
+    case Length.hemidemisemiquaver:
+      return 0.0625;
+  }
+}
+
 int pitchToMidi(Pitch pitch) {
   switch (pitch) {
     case Pitch.A0:
@@ -200,33 +221,7 @@ class _ViewTabState extends ConsumerState<ViewTab> {
                             "${i.pitch.name}: ${i.pitch.index}, ${i.length.name}",
                             name: "[NOTE]");
                         midi.playMidiNote(midi: pitchToMidi(i.pitch));
-                        double beats = 1;
-                        switch (i.length) {
-                          case Length.breve:
-                            beats = 8;
-                            break;
-                          case Length.semibreve:
-                            beats = 4;
-                            break;
-                          case Length.minim:
-                            beats = 2;
-                            break;
-                          case Length.crotchet:
-                            beats = 1;
-                            break;
-                          case Length.quaver:
-                            beats = 0.5;
-                            break;
-                          case Length.semiquaver:
-                            beats = 0.25;
-                            break;
-                          case Length.demisemiquaver:
-                            beats = 0.125;
-                            break;
-                          case Length.hemidemisemiquaver:
-                            beats = 0.0625;
-                            break;
-                        }
+                        double beats = lengthToBeats(i.length);
                         await Future.delayed(Duration(
                             milliseconds: (tempo * beats * 1000).round()));
                       }
