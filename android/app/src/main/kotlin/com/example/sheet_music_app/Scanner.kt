@@ -4,7 +4,6 @@ import android.util.Log
 import com.example.sheet_music_app.pigeon.Length
 import com.example.sheet_music_app.pigeon.Note
 import com.example.sheet_music_app.pigeon.Pitch
-import com.example.sheet_music_app.pigeon.Return
 import com.example.sheet_music_app.pigeon.ScannerAPI
 import io.flutter.FlutterInjector
 import io.flutter.embedding.android.FlutterActivity
@@ -102,23 +101,23 @@ class Scanner(private val activity: FlutterActivity) : ScannerAPI {
             Pair(it, getPitches(img, it, stave))
         }
 
-
-        //Change the image from greyscale to coloured
-        Imgproc.cvtColor(img, img, Imgproc.COLOR_GRAY2RGB)
-        //Draw a red line across the image for each
-        stave.forEach {
-            Imgproc.line(
-                img,
-                Point(0.0, it.toDouble()),
-                Point(img.width().toDouble(), it.toDouble()),
-                Scalar(
-                    0.0,
-                    0.0,
-                    255.0,
-                ),
-                5
-            )
-        }
+//
+//        //Change the image from greyscale to coloured
+//        Imgproc.cvtColor(img, img, Imgproc.COLOR_GRAY2RGB)
+//        //Draw a red line across the image for each
+//        stave.forEach {
+//            Imgproc.line(
+//                img,
+//                Point(0.0, it.toDouble()),
+//                Point(img.width().toDouble(), it.toDouble()),
+//                Scalar(
+//                    0.0,
+//                    0.0,
+//                    255.0,
+//                ),
+//                5
+//            )
+//        }
         val notes = points.map {
             it.second.sortedBy { it.second.y }.map { point ->
                 Log.d("Note", point.first.toString())
@@ -131,21 +130,21 @@ class Scanner(private val activity: FlutterActivity) : ScannerAPI {
             .map {
 //                Log.d("Loc", it.second.toString())
 //                Log.d("size", it.first.image.size().toString())
-                Imgproc.circle(
-                    img,
-                    Point(it.second.second.y + 7, it.second.second.x - 7),
-                    kotlin.math.max(it.first.image.width(), it.first.image.height())/2,
-                    Scalar(0.0, 0.0, 255.0),
-                    5
-                )
+//                Imgproc.circle(
+//                    img,
+//                    Point(it.second.second.y + 7, it.second.second.x - 7),
+//                    kotlin.math.max(it.first.image.width(), it.first.image.height())/2,
+//                    Scalar(0.0, 0.0, 255.0),
+//                    5
+//                )
                 it.second.first
             }
 
         //Write image to disk
-        Imgcodecs.imwrite(imagePath, img)
+//        Imgcodecs.imwrite(imagePath, img)
 
         //Return path of image
-        return Return(notes, imagePath)
+        return notes
     }
 
     //Required preprocessing on input images

@@ -142,28 +142,6 @@ data class Note (
     )
   }
 }
-
-/** Generated class from Pigeon that represents data sent in messages. */
-data class Return (
-  val notes: List<Note?>,
-  val path: String
-
-) {
-  companion object {
-    @Suppress("UNCHECKED_CAST")
-    fun fromList(list: List<Any?>): Return {
-      val notes = list[0] as List<Note?>
-      val path = list[1] as String
-      return Return(notes, path)
-    }
-  }
-  fun toList(): List<Any?> {
-    return listOf<Any?>(
-      notes,
-      path,
-    )
-  }
-}
 @Suppress("UNCHECKED_CAST")
 private object ScannerAPICodec : StandardMessageCodec() {
   override fun readValueOfType(type: Byte, buffer: ByteBuffer): Any? {
@@ -171,11 +149,6 @@ private object ScannerAPICodec : StandardMessageCodec() {
       128.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
           Note.fromList(it)
-        }
-      }
-      129.toByte() -> {
-        return (readValue(buffer) as? List<Any?>)?.let {
-          Return.fromList(it)
         }
       }
       else -> super.readValueOfType(type, buffer)
@@ -187,10 +160,6 @@ private object ScannerAPICodec : StandardMessageCodec() {
         stream.write(128)
         writeValue(stream, value.toList())
       }
-      is Return -> {
-        stream.write(129)
-        writeValue(stream, value.toList())
-      }
       else -> super.writeValue(stream, value)
     }
   }
@@ -198,7 +167,7 @@ private object ScannerAPICodec : StandardMessageCodec() {
 
 /** Generated interface from Pigeon that represents a handler of messages from Flutter. */
 interface ScannerAPI {
-  fun scan(imagePath: String): Return
+  fun scan(imagePath: String): List<Note>
 
   companion object {
     /** The codec used by ScannerAPI. */

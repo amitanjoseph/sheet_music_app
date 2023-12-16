@@ -78,14 +78,8 @@ class Note {
   const Note(this.pitch, this.length);
 }
 
-class Return {
-  final List<Note?> notes;
-  final String path;
-  const Return(this.path, this.notes);
-}
-
 //The api for scanning images
 @HostApi()
 abstract class ScannerAPI {
-  Return scan(String imagePath);
+  List<Note> scan(String imagePath);
 }

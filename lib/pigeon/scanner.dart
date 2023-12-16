@@ -100,41 +100,12 @@ class Note {
   }
 }
 
-class Return {
-  Return({
-    required this.notes,
-    required this.path,
-  });
-
-  List<Note?> notes;
-
-  String path;
-
-  Object encode() {
-    return <Object?>[
-      notes,
-      path,
-    ];
-  }
-
-  static Return decode(Object result) {
-    result as List<Object?>;
-    return Return(
-      notes: (result[0] as List<Object?>?)!.cast<Note?>(),
-      path: result[1]! as String,
-    );
-  }
-}
-
 class _ScannerAPICodec extends StandardMessageCodec {
   const _ScannerAPICodec();
   @override
   void writeValue(WriteBuffer buffer, Object? value) {
     if (value is Note) {
       buffer.putUint8(128);
-      writeValue(buffer, value.encode());
-    } else if (value is Return) {
-      buffer.putUint8(129);
       writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
@@ -146,8 +117,6 @@ class _ScannerAPICodec extends StandardMessageCodec {
     switch (type) {
       case 128: 
         return Note.decode(readValue(buffer)!);
-      case 129: 
-        return Return.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
     }
@@ -164,7 +133,7 @@ class ScannerAPI {
 
   static const MessageCodec<Object?> codec = _ScannerAPICodec();
 
-  Future<Return> scan(String arg_imagePath) async {
+  Future<List<Note?>> scan(String arg_imagePath) async {
     final BasicMessageChannel<Object?> channel = BasicMessageChannel<Object?>(
         'dev.flutter.pigeon.sheet_music_app.ScannerAPI.scan', codec,
         binaryMessenger: _binaryMessenger);
@@ -187,7 +156,7 @@ class ScannerAPI {
         message: 'Host platform returned null value for non-null return value.',
       );
     } else {
-      return (replyList[0] as Return?)!;
+      return (replyList[0] as List<Object?>?)!.cast<Note?>();
     }
   }
 }
