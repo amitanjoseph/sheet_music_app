@@ -50,22 +50,22 @@ class Scanner(private val activity: FlutterActivity) : ScannerAPI {
         OpenCVLoader.initDebug()
 
         //Get sheet music image key from assets to fetch the file
-        val key = FlutterInjector.instance().flutterLoader()
-            .getLookupKeyForAsset("images/sheet_music.jpg");
+//        val key = FlutterInjector.instance().flutterLoader()
+//            .getLookupKeyForAsset("images/sheet_music.jpg");
 
 
         //Get the actual image from a stream of bytes
-        val img = activity.assets.openFd(key).use {
-            val bytes = it.createInputStream().readBytes()
-            Imgcodecs.imdecode(MatOfByte(*bytes), Imgcodecs.IMREAD_ANYCOLOR)
-        }
+//        val img = activity.assets.openFd(key).use {
+//            val bytes = it.createInputStream().readBytes()
+//            Imgcodecs.imdecode(MatOfByte(*bytes), Imgcodecs.IMREAD_ANYCOLOR)
+//        }
 
         //Load the templates
         var templates = loadTemplateAssets(activity)
 
 
         //Load image
-//        val img = Imgcodecs.imread(imagePath)
+        val img = Imgcodecs.imread(imagePath)
 
         //Preprocess Images
         preprocess(img)
