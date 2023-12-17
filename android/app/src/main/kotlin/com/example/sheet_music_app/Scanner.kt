@@ -115,7 +115,7 @@ class Scanner(private val activity: FlutterActivity) : ScannerAPI {
                     0.0,
                     255.0,
                 ),
-                5
+                3
             )
         }
         val notes = points.map {
@@ -135,7 +135,7 @@ class Scanner(private val activity: FlutterActivity) : ScannerAPI {
                     Point(it.second.second.y + 7, it.second.second.x - 7),
                     kotlin.math.max(it.first.image.width(), it.first.image.height())/2,
                     Scalar(0.0, 0.0, 255.0),
-                    5
+                    3
                 )
                 it.second.first
             }
@@ -166,12 +166,12 @@ class Scanner(private val activity: FlutterActivity) : ScannerAPI {
             255.0,
             Imgproc.ADAPTIVE_THRESH_MEAN_C,
             Imgproc.THRESH_BINARY_INV,
-            43,
-            3.0
+            21,
+            4.0
         )
 
         //Apply Morphological Close
-        val strucElement2 = Imgproc.getStructuringElement(Imgproc.CV_SHAPE_ELLIPSE, Size(6.0, 6.0))
+        val strucElement2 = Imgproc.getStructuringElement(Imgproc.CV_SHAPE_ELLIPSE, Size(3.0, 3.0))
         Imgproc.morphologyEx(image, image, Imgproc.MORPH_OPEN, strucElement2)
 //        val strucElement1 =
 //            Imgproc.getStructuringElement(Imgproc.CV_SHAPE_ELLIPSE, Size(18.0, 15.0))
@@ -320,7 +320,7 @@ class Scanner(private val activity: FlutterActivity) : ScannerAPI {
     private fun posToPitch(height: Double, stave: List<Int>): Pitch {
         val staveHeight = calcStaveHeight(stave)
         val F5 = stave[0]
-        val relPitch = kotlin.math.round((F5 - height) * 2 / staveHeight).toInt()
+        val relPitch = kotlin.math.round((F5 - height + 0.3) * 2 / staveHeight).toInt()
 
         return Pitch.ofRaw(Pitch.F5.raw + relPitch)!!
     }
