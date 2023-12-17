@@ -1,5 +1,6 @@
 import 'dart:developer' as dev;
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -153,15 +154,18 @@ int pitchToMidi(Pitch pitch) {
 class _ViewTabState extends ConsumerState<ViewTab> {
   // late Future<List<List<Note?>>> tempFuture;
   late Future<void> f;
-  late Future<List<Note?>> notes;
   final midi = FlutterMidi();
   final tempo = bpmToSecondsPerBeat(100);
+  late List<List<File>> parts;
+  late Future<List<List<Note>>> music;
 
   @override
   void initState() {
     f = rootBundle.load("sf2/piano.sf2").then((bytes) async {
       await midi.prepare(sf2: bytes);
     });
+
+    parts = ref.read(temporarySheetMusicImageProvider);
 
     // midi.unmute().then(
     //   (value) async {
@@ -184,22 +188,23 @@ class _ViewTabState extends ConsumerState<ViewTab> {
     // }));
 
     // Create a temporary file to save the processed image
-    notes = getTemporaryDirectory().then((value) async {
-      final temp = await value.createTemp();
-      final path = File("${temp.path}/sheet_music.jpg");
-      return (await ScannerAPI().scan(path.path));
-    });
+    music = Future.wait(parts.map((part) async {
+      return (await Future.wait(part.map((line) async {
+        return (await ScannerAPI().scan(line.path));
+      })))
+          .expand((element) => element.map((e) => e!))
+          .toList();
+    }));
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
     //The nested list of parts and images
-    final parts = ref.read(temporarySheetMusicImageProvider);
 
     //Render each part using the Part Widget
     return FutureBuilder(
-      future: notes,
+      future: music,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {
           return Column(
@@ -215,18 +220,18 @@ class _ViewTabState extends ConsumerState<ViewTab> {
                 height: 120,
                 child: IconButton(
                   onPressed: () async {
-                    for (final i in snapshot.data!) {
-                      if (i != null) {
-                        dev.log(
-                            "${i.pitch.name}: ${i.pitch.index}, ${i.length.name}",
-                            name: "[NOTE]");
-                        midi.playMidiNote(midi: pitchToMidi(i.pitch));
-                        double beats = lengthToBeats(i.length);
-                        await Future.delayed(Duration(
-                            milliseconds: (tempo * beats * 1000).round()));
-                      }
-                    }
                     dev.log("play");
+                    dev.log(snapshot.data!.map((e) => e.toString()).toString());
+                    await Future.wait(snapshot.data!.map((part) async {
+                      for (final note in part) {
+                        dev.log("${note.pitch.name}, ${note.length.name}");
+                        final pitch = pitchToMidi(note.pitch);
+                        final length = lengthToBeats(note.length);
+                        midi.playMidiNote(midi: pitch);
+                        await Future.delayed(Duration(
+                            milliseconds: (tempo * length * 1000).round()));
+                      }
+                    }));
                   },
                   icon: Icon(
                     Icons.play_arrow_outlined,
