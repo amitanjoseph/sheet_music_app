@@ -206,6 +206,9 @@ class _ViewTabState extends ConsumerState<ViewTab> {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {
           final player = Player(snapshot.data!, midi, tempo);
+          dev.log(
+              snapshot.data!.map((e) => e.map((e) => e.pitch.name)).toString(),
+              name: "NOTES");
           return Column(
             children: [
               Expanded(
@@ -342,10 +345,66 @@ class Player {
   }
 
   Future<void> _playNote(Note note) async {
-    final pitch = pitchToMidi(note.pitch);
+    final pitch = transposedPitchToMidi(note.pitch, KeySig.BFlat);
     final length = lengthToBeats(note.length);
     midi.playMidiNote(midi: pitch);
     await Future.delayed(
         Duration(milliseconds: (tempo * length * 1000).round()));
+  }
+}
+
+enum KeySigType {
+  sharp,
+  flat;
+
+  static const sharps = ["F", "C", "G", "D", "A", "E", "B"];
+  static const flats = ["B", "E", "A", "D", "G", "C", "F"];
+}
+
+enum KeySig {
+  C(KeySigType.sharp, 0),
+  G(KeySigType.sharp, 1),
+  D(KeySigType.sharp, 2),
+  A(KeySigType.sharp, 3),
+  E(KeySigType.sharp, 4),
+  B(KeySigType.sharp, 5),
+  FSharp(KeySigType.sharp, 6),
+  CSharp(KeySigType.sharp, 7),
+  F(KeySigType.flat, 1),
+  BFlat(KeySigType.flat, 2),
+  EFlat(KeySigType.flat, 3),
+  AFlat(KeySigType.flat, 4),
+  DFlat(KeySigType.flat, 5),
+  GFlat(KeySigType.flat, 6);
+
+  final KeySigType type;
+  final int numberOfAccidentals;
+
+  const KeySig(this.type, this.numberOfAccidentals);
+}
+
+int transposedPitchToMidi(Pitch pitch, KeySig scale) {
+  final [note, number] = pitch.name.split('');
+  final noteToMidi = {
+    "A": 21,
+    "B": 23,
+    "C": 24,
+    "D": 26,
+    "E": 28,
+    "F": 29,
+    "G": 31,
+  };
+
+  final offset =
+      note != 'A' && note != 'B' ? int.parse(number) - 1 : int.parse(number);
+
+  final midi = noteToMidi[note]! + 12 * offset;
+  switch (scale.type) {
+    case KeySigType.sharp:
+      final sharps = KeySigType.sharps.take(scale.numberOfAccidentals).toList();
+      return midi + (sharps.contains(note) ? 1 : 0);
+    case KeySigType.flat:
+      final flats = KeySigType.flats.take(scale.numberOfAccidentals).toList();
+      return midi + (flats.contains(note) ? -1 : 0);
   }
 }
