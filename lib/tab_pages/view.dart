@@ -1,11 +1,9 @@
 import 'dart:developer' as dev;
 import 'dart:io';
-import 'dart:isolate';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:sheet_music_app/pigeon/scanner.dart';
 import 'package:sheet_music_app/state.dart';
 import 'package:flutter_midi/flutter_midi.dart';
@@ -207,6 +205,7 @@ class _ViewTabState extends ConsumerState<ViewTab> {
       future: music,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {
+          final player = Player(snapshot.data!, midi, tempo);
           return Column(
             children: [
               Expanded(
@@ -218,27 +217,7 @@ class _ViewTabState extends ConsumerState<ViewTab> {
               ),
               SizedBox(
                 height: 120,
-                child: IconButton(
-                  onPressed: () async {
-                    dev.log("play");
-                    dev.log(snapshot.data!.map((e) => e.toString()).toString());
-                    await Future.wait(snapshot.data!.map((part) async {
-                      for (final note in part) {
-                        dev.log("${note.pitch.name}, ${note.length.name}");
-                        final pitch = pitchToMidi(note.pitch);
-                        final length = lengthToBeats(note.length);
-                        midi.playMidiNote(midi: pitch);
-                        await Future.delayed(Duration(
-                            milliseconds: (tempo * length * 1000).round()));
-                      }
-                    }));
-                  },
-                  icon: Icon(
-                    Icons.play_arrow_outlined,
-                    size: 100,
-                    color: Theme.of(context).primaryColor,
-                  ),
-                ),
+                child: PlaybackButton(player: player),
               )
             ],
           );
@@ -247,6 +226,57 @@ class _ViewTabState extends ConsumerState<ViewTab> {
         }
       },
     );
+  }
+}
+
+class PlaybackButton extends StatefulWidget {
+  const PlaybackButton({
+    super.key,
+    required this.player,
+  });
+
+  final Player player;
+
+  @override
+  State<PlaybackButton> createState() => _PlaybackButtonState();
+}
+
+class _PlaybackButtonState extends State<PlaybackButton> {
+  var paused = true;
+
+  void _toggle() {
+    setState(() {
+      paused = !paused;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return paused
+        ? IconButton(
+            onPressed: () async {
+              dev.log("play");
+              _toggle();
+              await widget.player.play();
+            },
+            icon: Icon(
+              Icons.play_arrow_outlined,
+              size: 100,
+              color: Theme.of(context).primaryColor,
+            ),
+          )
+        : IconButton(
+            onPressed: () {
+              dev.log("pause");
+              _toggle();
+              widget.player.pause();
+            },
+            icon: Icon(
+              Icons.pause_outlined,
+              size: 100,
+              color: Theme.of(context).primaryColor,
+            ),
+          );
   }
 }
 
@@ -277,5 +307,45 @@ class Part extends StatelessWidget {
         )
       ],
     );
+  }
+}
+
+extension ListGet<T> on List<T> {
+  T? get(int index) => index < 0 || index >= length ? null : this[index];
+}
+
+class Player {
+  final List<List<Note>> parts;
+  final FlutterMidi midi;
+  final double tempo;
+
+  bool paused = false;
+  List<int> currentNote;
+  Player(this.parts, this.midi, this.tempo)
+      : currentNote = List.generate(parts.length, (index) => 0);
+
+  Future<void> play() async {
+    paused = false;
+    await Future.wait(parts.indexed.map((arg) async {
+      final index = arg.$1;
+      final part = arg.$2;
+      for (var i = currentNote[index]; i < part.length; i++) {
+        currentNote[index] = i;
+        if (paused) break;
+        await _playNote(part[i]);
+      }
+    }));
+  }
+
+  void pause() {
+    paused = true;
+  }
+
+  Future<void> _playNote(Note note) async {
+    final pitch = pitchToMidi(note.pitch);
+    final length = lengthToBeats(note.length);
+    midi.playMidiNote(midi: pitch);
+    await Future.delayed(
+        Duration(milliseconds: (tempo * length * 1000).round()));
   }
 }
