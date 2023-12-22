@@ -44,7 +44,6 @@ class _ViewTabState extends ConsumerState<ViewTab> {
   // late Future<List<List<Note?>>> tempFuture;
   late Future<void> f;
   final midi = FlutterMidi();
-  final tempo = bpmToSecondsPerBeat(100);
   late List<List<File>> parts;
   late Future<List<List<Note>>> music;
 
@@ -76,7 +75,7 @@ class _ViewTabState extends ConsumerState<ViewTab> {
       future: music,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {
-          final player = Player(snapshot.data!, midi, tempo);
+          final player = Player(snapshot.data!, midi, 120);
           dev.log(
               snapshot.data!.map((e) => e.map((e) => e.pitch.name)).toString(),
               name: "NOTES");
@@ -96,6 +95,7 @@ class _ViewTabState extends ConsumerState<ViewTab> {
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       DropdownMenu(
                         initialSelection: KeySig.C,
@@ -103,6 +103,7 @@ class _ViewTabState extends ConsumerState<ViewTab> {
                         onSelected: (value) {
                           player.keysig = value!;
                         },
+                        width: 120,
                         dropdownMenuEntries: KeySig.values.map((e) {
                           var name = e.name;
                           name = name.replaceAll('Flat', '♭');
@@ -111,6 +112,19 @@ class _ViewTabState extends ConsumerState<ViewTab> {
                         }).toList(),
                       ),
                       PlaybackButton(player: player),
+                      DropdownMenu(
+                        initialSelection: 120.0,
+                        label: const Text("Tempo"),
+                        width: 120,
+                        onSelected: (value) {
+                          player.tempo = value!.toInt();
+                        },
+                        dropdownMenuEntries: List.generate(
+                                25, (index) => 60 + index * 5)
+                            .map((i) =>
+                                DropdownMenuEntry(value: i, label: "♩ = $i"))
+                            .toList(),
+                      ),
                     ],
                   ),
                 ),
@@ -213,11 +227,12 @@ extension ListGet<T> on List<T> {
 class Player {
   final List<List<Note>> parts;
   final FlutterMidi midi;
-  final double tempo;
 
+  int tempo;
   bool paused = false;
   KeySig keysig = KeySig.C;
   List<int> currentNote;
+
   Player(this.parts, this.midi, this.tempo)
       : currentNote = List.generate(parts.length, (index) => 0);
 
@@ -242,8 +257,8 @@ class Player {
     final pitch = transposedPitchToMidi(note.pitch, keysig);
     final length = lengthToBeats(note.length);
     midi.playMidiNote(midi: pitch);
-    await Future.delayed(
-        Duration(milliseconds: (tempo * length * 1000).round()));
+    await Future.delayed(Duration(
+        milliseconds: (bpmToSecondsPerBeat(tempo) * length * 1000).round()));
   }
 }
 
