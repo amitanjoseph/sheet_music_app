@@ -89,9 +89,31 @@ class _ViewTabState extends ConsumerState<ViewTab> {
                   itemCount: parts.length,
                 ),
               ),
-              SizedBox(
+              Container(
                 height: 120,
-                child: PlaybackButton(player: player),
+                width: double.infinity,
+                color: Colors.lightGreen[50],
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Row(
+                    children: [
+                      DropdownMenu(
+                        initialSelection: KeySig.C,
+                        label: const Text("Key Signature"),
+                        onSelected: (value) {
+                          player.keysig = value!;
+                        },
+                        dropdownMenuEntries: KeySig.values.map((e) {
+                          var name = e.name;
+                          name = name.replaceAll('Flat', '♭');
+                          name = name.replaceAll('Sharp', '♯');
+                          return DropdownMenuEntry(value: e, label: name);
+                        }).toList(),
+                      ),
+                      PlaybackButton(player: player),
+                    ],
+                  ),
+                ),
               )
             ],
           );
@@ -194,6 +216,7 @@ class Player {
   final double tempo;
 
   bool paused = false;
+  KeySig keysig = KeySig.C;
   List<int> currentNote;
   Player(this.parts, this.midi, this.tempo)
       : currentNote = List.generate(parts.length, (index) => 0);
@@ -216,7 +239,7 @@ class Player {
   }
 
   Future<void> _playNote(Note note) async {
-    final pitch = transposedPitchToMidi(note.pitch, KeySig.BFlat);
+    final pitch = transposedPitchToMidi(note.pitch, keysig);
     final length = lengthToBeats(note.length);
     midi.playMidiNote(midi: pitch);
     await Future.delayed(
