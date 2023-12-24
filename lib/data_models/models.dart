@@ -1,4 +1,26 @@
-class SheetMusic {
+import 'package:sqflite/sqflite.dart';
+
+abstract class Model {
+  final String database;
+
+  Model(this.database);
+  Map<String, Object?> toMap();
+
+  Future<void> insert(Future<Database> database) async {
+    final db = await database;
+
+    await db.insert(this.database, toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  @override
+  String toString() {
+    // ignore: prefer_interpolation_to_compose_strings
+    return database + "${toMap()}";
+  }
+}
+
+class SheetMusic extends Model {
   final int id;
   final String name;
   final String file;
@@ -19,8 +41,9 @@ class SheetMusic {
     required this.folder,
     required this.keySig,
     required this.tempo,
-  });
+  }) : super("SheetMusic");
 
+  @override
   Map<String, Object?> toMap() {
     return {
       "id": id,
@@ -34,14 +57,9 @@ class SheetMusic {
       "tempo": tempo,
     };
   }
-
-  @override
-  String toString() {
-    return "SheetMusic${toMap()}";
-  }
 }
 
-class Image {
+class Image extends Model {
   final int sheetMusicId;
   final String image;
   final int part;
@@ -52,8 +70,9 @@ class Image {
     required this.image,
     required this.part,
     required this.seqNo,
-  });
+  }) : super("Images");
 
+  @override
   Map<String, Object?> toMap() {
     return {
       "sheetMusicId": sheetMusicId,
@@ -61,10 +80,5 @@ class Image {
       "part": part,
       "sequenceNumber": seqNo,
     };
-  }
-
-  @override
-  String toString() {
-    return "Image${toMap()}";
   }
 }
