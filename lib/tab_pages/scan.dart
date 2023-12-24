@@ -290,7 +290,7 @@ class CameraCaptureButton extends ConsumerWidget {
                     //outside it
                     barrierDismissible: false,
                     context: context,
-                    builder: (builder) {
+                    builder: (context) {
                       return AlertDialog(
                         title: const Text("Photo Taken"),
                         content: const Text(

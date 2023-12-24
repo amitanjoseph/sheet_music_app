@@ -49,6 +49,7 @@ class _ViewTabState extends ConsumerState<ViewTab> {
 
   @override
   void initState() {
+    super.initState();
     f = rootBundle.load("sf2/piano.sf2").then((bytes) async {
       await midi.prepare(sf2: bytes);
     });
@@ -63,7 +64,6 @@ class _ViewTabState extends ConsumerState<ViewTab> {
           .expand((element) => element.map((e) => e!))
           .toList();
     }));
-    super.initState();
   }
 
   @override
@@ -79,55 +79,23 @@ class _ViewTabState extends ConsumerState<ViewTab> {
           dev.log(
               snapshot.data!.map((e) => e.map((e) => e.pitch.name)).toString(),
               name: "NOTES");
-          return Column(
+          return Stack(
             children: [
-              Expanded(
-                child: ListView.builder(
-                  itemBuilder: (context, partNo) =>
-                      Part(parts[partNo], partNo + 1),
-                  itemCount: parts.length,
-                ),
-              ),
-              Container(
-                height: 120,
-                width: double.infinity,
-                color: Colors.lightGreen[50],
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      DropdownMenu(
-                        initialSelection: KeySig.C,
-                        label: const Text("Key Signature"),
-                        onSelected: (value) {
-                          player.keysig = value!;
-                        },
-                        width: 120,
-                        dropdownMenuEntries: KeySig.values.map((e) {
-                          var name = e.name;
-                          name = name.replaceAll('Flat', '♭');
-                          name = name.replaceAll('Sharp', '♯');
-                          return DropdownMenuEntry(value: e, label: name);
-                        }).toList(),
-                      ),
-                      PlaybackButton(player: player),
-                      DropdownMenu(
-                        initialSelection: 120.0,
-                        label: const Text("Tempo"),
-                        width: 120,
-                        onSelected: (value) {
-                          player.tempo = value!.toInt();
-                        },
-                        dropdownMenuEntries: List.generate(
-                                25, (index) => 60 + index * 5)
-                            .map((i) =>
-                                DropdownMenuEntry(value: i, label: "♩ = $i"))
-                            .toList(),
-                      ),
-                    ],
+              Column(
+                children: [
+                  Expanded(
+                    child: ListView.builder(
+                      itemBuilder: (context, partNo) =>
+                          Part(parts[partNo], partNo + 1),
+                      itemCount: parts.length,
+                    ),
                   ),
-                ),
+                  Controls(player: player)
+                ],
+              ),
+              const SafeArea(
+                child:
+                    Align(alignment: Alignment.topRight, child: SaveButton()),
               )
             ],
           );
@@ -135,6 +103,133 @@ class _ViewTabState extends ConsumerState<ViewTab> {
           return const Center(child: CircularProgressIndicator());
         }
       },
+    );
+  }
+}
+
+class SaveButton extends ConsumerStatefulWidget {
+  const SaveButton({super.key});
+
+  @override
+  ConsumerState<SaveButton> createState() => _SaveButtonState();
+}
+
+class _SaveButtonState extends ConsumerState<SaveButton> {
+  final _formKey = GlobalKey<FormState>();
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      icon: const Icon(Icons.save_outlined),
+      onPressed: () {
+        showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: const Text("Save File?"),
+              content: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      decoration: const InputDecoration(labelText: "Name"),
+                      validator: (value) {
+                        if (value != null && value.isNotEmpty) {
+                          final matches = RegExp("([^ A-Za-z0-9_-])")
+                              .allMatches(value)
+                              .fold(<String>[], (previousValue, element) {
+                            final string =
+                                value.substring(element.start, element.end);
+                            dev.log(string, name: "REGEX MATCHES");
+                            return previousValue.contains(string)
+                                ? previousValue
+                                : previousValue + [string];
+                          });
+                          return matches.isEmpty
+                              ? null
+                              : "Invalid Characters: ${matches.join(" ")}";
+                        }
+                        return "Name must be not empty.";
+                      },
+                    ),
+                    TextFormField(
+                      decoration: const InputDecoration(labelText: "Composer"),
+                    )
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    if (_formKey.currentState!.validate()) {
+                      dev.log("SAVEVEVEVE");
+                    }
+                  },
+                  child: const Text("Save"),
+                ),
+                TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: const Text("Cancel")),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class Controls extends StatelessWidget {
+  const Controls({
+    super.key,
+    required this.player,
+  });
+
+  final Player player;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 120,
+      width: double.infinity,
+      color: Colors.lightGreen[50],
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            DropdownMenu(
+              initialSelection: KeySig.C,
+              label: const Text("Key Signature"),
+              onSelected: (value) {
+                player.keysig = value!;
+              },
+              width: 120,
+              dropdownMenuEntries: KeySig.values.map((e) {
+                var name = e.name;
+                name = name.replaceAll('Flat', '♭');
+                name = name.replaceAll('Sharp', '♯');
+                return DropdownMenuEntry(value: e, label: name);
+              }).toList(),
+            ),
+            PlaybackButton(player: player),
+            DropdownMenu(
+              initialSelection: 120.0,
+              label: const Text("Tempo"),
+              width: 120,
+              onSelected: (value) {
+                player.tempo = value!.toInt();
+              },
+              dropdownMenuEntries: List.generate(25, (index) => 60 + index * 5)
+                  .map((i) => DropdownMenuEntry(value: i, label: "♩ = $i"))
+                  .toList(),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

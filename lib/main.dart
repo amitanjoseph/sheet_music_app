@@ -8,12 +8,13 @@ import 'package:sheet_music_app/tab_pages/view.dart';
 
 import 'state.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(statusBarColor: Colors.transparent));
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-  runApp(const SheetMusicApp());
+
+  runApp(const ProviderScope(child: SheetMusicApp()));
 }
 
 //The class describing the main app
@@ -24,21 +25,19 @@ class SheetMusicApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     //Use Material Design based App
-    return ProviderScope(
-      child: MaterialApp(
-        //Set the name of the app window
-        title: 'Sheet Music Scanner',
-        //Set theme properties that are propogated to all widgets
-        theme: ThemeData(
-          //Set colourscheme
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.lightGreen),
-          //Use Material3 widgets instead of Material2 widgets
-          useMaterial3: true,
-        ),
-        //The start of the widget tree for the actual app
-        home: const TabBar(),
-        debugShowCheckedModeBanner: false,
+    return MaterialApp(
+      //Set the name of the app window
+      title: 'Sheet Music Scanner',
+      //Set theme properties that are propogated to all widgets
+      theme: ThemeData(
+        //Set colourscheme
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.lightGreen),
+        //Use Material3 widgets instead of Material2 widgets
+        useMaterial3: true,
       ),
+      //The start of the widget tree for the actual app
+      home: const TabBar(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
