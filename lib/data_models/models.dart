@@ -1,27 +1,24 @@
 import 'package:sqflite/sqflite.dart';
 
 abstract class Model {
-  final String database;
+  final String table;
 
-  Model(this.database);
+  Model(this.table);
   Map<String, Object?> toMap();
 
-  Future<void> insert(Future<Database> database) async {
-    final db = await database;
-
-    await db.insert(this.database, toMap(),
+  Future<int> insert(Database db) {
+    return db.insert(table, toMap(),
         conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   @override
   String toString() {
     // ignore: prefer_interpolation_to_compose_strings
-    return database + "${toMap()}";
+    return table + "${toMap()}";
   }
 }
 
 class SheetMusic extends Model {
-  final int id;
   final String name;
   final String file;
   final String? composer;
@@ -32,7 +29,6 @@ class SheetMusic extends Model {
   final int tempo;
 
   SheetMusic({
-    required this.id,
     required this.name,
     required this.file,
     required this.composer,
@@ -46,7 +42,6 @@ class SheetMusic extends Model {
   @override
   Map<String, Object?> toMap() {
     return {
-      "id": id,
       "name": name,
       "file": file,
       "composer": composer,
