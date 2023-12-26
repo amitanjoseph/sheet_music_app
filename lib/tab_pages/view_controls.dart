@@ -33,6 +33,7 @@ class _SaveButtonState extends ConsumerState<SaveButton> {
 
   @override
   Widget build(BuildContext context) {
+    final db = ref.watch(databaseProvider);
     return IconButton(
       icon: const Icon(Icons.save_outlined),
       onPressed: () {
@@ -85,8 +86,7 @@ class _SaveButtonState extends ConsumerState<SaveButton> {
                           : composerController.text;
                       final dateViewed = DateTime.now().millisecondsSinceEpoch;
                       final dateCreated = DateTime.now().millisecondsSinceEpoch;
-                      final (tempo, keySig) = ref.read(controlsState);
-                      final db = ref.read(databaseProvider);
+                      final (tempo, keySig) = ref.watch(controlsState);
                       final file = join(
                           (await getApplicationDocumentsDirectory()).path,
                           "$name.smn");
@@ -114,6 +114,8 @@ class _SaveButtonState extends ConsumerState<SaveButton> {
                                   .insert(database);
                             }
                           }
+                          dev.log("done");
+                          if (context.mounted) Navigator.of(context).pop();
                         },
                         error: (error, stackTrace) {
                           dev.log("$error", name: "ERROR");
@@ -151,7 +153,7 @@ class Controls extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final (tempo, keySig) = ref.read(controlsState);
+    final (tempo, keySig) = ref.watch(controlsState);
     return Container(
       height: 120,
       width: double.infinity,

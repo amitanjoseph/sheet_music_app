@@ -78,7 +78,7 @@ class _ViewTabState extends ConsumerState<ViewTab> {
                       parts: snapshot.data!,
                       partImages: parts,
                     )),
-              )
+              ),
             ],
           );
         } else {

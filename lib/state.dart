@@ -28,7 +28,7 @@ Future<Database> database(DatabaseRef ref) async {
       await db.execute(
           "CREATE TABLE SheetMusic(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, file TEXT NOT NULL, composer TEXT, dateViewed INTEGER NOT NULL, dateCreated INTEGER NOT NULL, folder TEXT, keySignature TEXT NOT NULL, tempo INTEGER NOT NULL)");
       return db.execute(
-          "CREATE TABLE Images(sheetMusicId INTEGER NOT NULL, image TEXT NOT NULL, part INTEGER NOT NULL, sequenceNumber INTEGER NOT NULL, PRIMARY KEY (id, image))");
+          "CREATE TABLE Images(sheetMusicId INTEGER NOT NULL, image TEXT NOT NULL, part INTEGER NOT NULL, sequenceNumber INTEGER NOT NULL, PRIMARY KEY (sheetMusicId, image))");
     },
     version: 1,
   );

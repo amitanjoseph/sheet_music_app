@@ -38,17 +38,17 @@ class HomeTab extends ConsumerWidget {
             //This is the Scan Sheet Music Button which, when pressed switches,
             //to the Scan Tab
             child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  textStyle: Theme.of(context).textTheme.labelLarge,
-                ),
-                onPressed: () {
-                  //Set currentPage to the scan tab
-                  ref.read(currentPageProvider.notifier).state =
-                      AppPages.scanTab;
-                },
-                child: const Text(
-                  'Scan Sheet Music',
-                )),
+              style: ElevatedButton.styleFrom(
+                textStyle: Theme.of(context).textTheme.labelLarge,
+              ),
+              onPressed: () {
+                //Set currentPage to the scan tab
+                ref.read(currentPageProvider.notifier).state = AppPages.scanTab;
+              },
+              child: const Text(
+                'Scan Sheet Music',
+              ),
+            ),
           ),
         ],
       ),

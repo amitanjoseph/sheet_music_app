@@ -64,6 +64,16 @@ class SheetMusic extends Model {
       "tempo": tempo,
     };
   }
+
+  @override
+  String toString() {
+    var map = toMap();
+    map["dateViewed"] =
+        DateTime.fromMillisecondsSinceEpoch(map["dateViewed"] as int);
+    map["dateCreated"] =
+        DateTime.fromMillisecondsSinceEpoch(map["dateCreated"] as int);
+    return "SheetMusic$map";
+  }
 }
 
 class Image extends Model {
