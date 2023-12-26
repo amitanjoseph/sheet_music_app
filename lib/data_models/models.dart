@@ -39,6 +39,18 @@ class SheetMusic extends Model {
     required this.tempo,
   }) : super("SheetMusic");
 
+  SheetMusic.fromMap(Map<String, Object?> map)
+      : this(
+          name: map["name"] as String,
+          file: map["file"] as String,
+          composer: map["composer"] as String?,
+          dateViewed: map["dateViewed"] as int,
+          dateCreated: map["dateCreated"] as int,
+          folder: map["folder"] as String?,
+          keySig: map["keySignature"] as String,
+          tempo: map["tempo"] as int,
+        );
+
   @override
   Map<String, Object?> toMap() {
     return {
@@ -66,6 +78,14 @@ class Image extends Model {
     required this.part,
     required this.seqNo,
   }) : super("Images");
+
+  Image.fromMap(Map<String, Object?> map)
+      : this(
+          sheetMusicId: map["sheetMusicId"] as int,
+          image: map["image"] as String,
+          part: map["part"] as int,
+          seqNo: map["sequenceNumber"] as int,
+        );
 
   @override
   Map<String, Object?> toMap() {

@@ -92,7 +92,7 @@ class _SaveButtonState extends ConsumerState<SaveButton> {
                           "$name.smn");
                       await File(file).writeAsBytes(makeSMN(widget.parts));
                       db.when(
-                        data: (data) async {
+                        data: (database) async {
                           final id = await models.SheetMusic(
                             name: name,
                             file: file,
@@ -102,15 +102,16 @@ class _SaveButtonState extends ConsumerState<SaveButton> {
                             folder: null,
                             keySig: keySig.toString(),
                             tempo: tempo,
-                          ).insert(data);
+                          ).insert(database);
                           for (final (partNo, part)
                               in widget.partImages.indexed) {
                             for (final (seqNo, image) in part.indexed) {
-                              models.Image(
-                                  sheetMusicId: id,
-                                  image: image.path,
-                                  part: partNo,
-                                  seqNo: seqNo);
+                              await models.Image(
+                                      sheetMusicId: id,
+                                      image: image.path,
+                                      part: partNo,
+                                      seqNo: seqNo)
+                                  .insert(database);
                             }
                           }
                         },
