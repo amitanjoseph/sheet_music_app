@@ -85,9 +85,6 @@ class _CameraState extends ConsumerState<Camera> {
   //Whether the flash is on or not
   var flash = false;
   final takingPicture = ValueNotifier(false);
-  //Index into the temporarySheetMusicImages array, representing
-  //which parts/no. of parts that are being captured
-  var partNumber = 0;
 
   void toggleFlash() {
     setState(() {
@@ -110,12 +107,6 @@ class _CameraState extends ConsumerState<Camera> {
     takingPicture.value = false;
     //Return path for testing
     return image.path;
-  }
-
-  void incrementPartNumber() {
-    setState(() {
-      partNumber += 1;
-    });
   }
 
   @override
@@ -143,10 +134,7 @@ class _CameraState extends ConsumerState<Camera> {
           valueListenable: takingPicture,
           //The button for taking pictures
           builder: (context, pictureBeingTaken, _) => CameraCaptureButton(
-              pictureBeingTaken: pictureBeingTaken,
-              takePicture: takePicture,
-              incrementPartNumber: incrementPartNumber,
-              partNumber: partNumber),
+              pictureBeingTaken: pictureBeingTaken, takePicture: takePicture),
         ),
 
         //Make sure flash button is underneath notification bar
@@ -247,17 +235,17 @@ class _CropWidgetState extends State<CropWidget> {
 class CameraCaptureButton extends ConsumerWidget {
   final bool pictureBeingTaken;
   final Future<String> Function() takePicture;
-  final void Function() incrementPartNumber;
-  final int partNumber;
-  const CameraCaptureButton(
-      {super.key,
-      required this.pictureBeingTaken,
-      required this.takePicture,
-      required this.incrementPartNumber,
-      required this.partNumber});
+
+  const CameraCaptureButton({
+    super.key,
+    required this.pictureBeingTaken,
+    required this.takePicture,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final sheetMusic = ref.watch(sheetMusicProvider.notifier);
+
     return IconButton(
       //Disable button if a picture is being taken
       onPressed: !pictureBeingTaken
@@ -265,22 +253,16 @@ class CameraCaptureButton extends ConsumerWidget {
               //Take picture
               takePicture().then((path) async {
                 //Display Crop Widget
-                final nav = Navigator.of(context);
-                await nav.push(MaterialPageRoute(
+                await Navigator.of(context).push(MaterialPageRoute(
                   builder: ((context) => CropWidget(path)),
                 ));
 
                 //Add image to temporarySheetMusicImages
-                ref
-                    .read(temporarySheetMusicImageProvider.notifier)
-                    .state[partNumber]
-                    .add(File(path));
+                sheetMusic.addImage(File(path));
 
                 //Log the entire list for testing purposes
                 dev.log(
-                  "${ref.read(temporarySheetMusicImageProvider).map((e) {
-                    return e.map((e) => e.path);
-                  })}",
+                  sheetMusic.toString(),
                   name: "Sheet Music Images",
                 );
                 //Show dialog for next required actions
@@ -309,13 +291,8 @@ class CameraCaptureButton extends ConsumerWidget {
                           TextButton(
                             onPressed: () {
                               //Increment the current part number being added to
-                              incrementPartNumber();
                               //Add new part list
-                              ref
-                                  .read(
-                                      temporarySheetMusicImageProvider.notifier)
-                                  .state
-                                  .add([]);
+                              sheetMusic.addPart();
                               //Exit dialog to show camera
                               Navigator.of(context).pop();
                             },

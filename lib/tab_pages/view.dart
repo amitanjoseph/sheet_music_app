@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sheet_music_app/pigeon/scanner.dart';
-import 'package:sheet_music_app/state.dart';
 import 'package:flutter_midi/flutter_midi.dart';
+import 'package:sheet_music_app/state.dart';
 import 'package:sheet_music_app/utils/player.dart';
 
 import 'view_controls.dart';
@@ -22,8 +22,7 @@ class _ViewTabState extends ConsumerState<ViewTab> {
   // late Future<List<List<Note?>>> tempFuture;
   late Future<void> f;
   final midi = FlutterMidi();
-  late List<List<File>> parts;
-  late Future<List<List<Note>>> music;
+  late Future<(List<List<Note>>, List<List<File>>)> music;
 
   @override
   void initState() {
@@ -31,21 +30,11 @@ class _ViewTabState extends ConsumerState<ViewTab> {
     f = rootBundle.load("sf2/piano.sf2").then((bytes) async {
       await midi.prepare(sf2: bytes);
     });
-
-    parts = ref.read(temporarySheetMusicImageProvider);
-
-    // Create a temporary file to save the processed image
-    music = Future.wait(parts.map((part) async {
-      return (await Future.wait(part.map((line) async {
-        return (await ScannerAPI().scan(line.path));
-      })))
-          .expand((element) => element.map((e) => e!))
-          .toList();
-    }));
   }
 
   @override
   Widget build(BuildContext context) {
+    music = ref.watch(sheetMusicProvider.notifier).getMusic();
     //The nested list of parts and images
 
     //Render each part using the Part Widget
@@ -53,9 +42,9 @@ class _ViewTabState extends ConsumerState<ViewTab> {
       future: music,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {
-          final player = Player(snapshot.data!, midi, ref);
-          dev.log(
-              snapshot.data!.map((e) => e.map((e) => e.pitch.name)).toString(),
+          final (notes, parts) = snapshot.data!;
+          final player = Player(notes, midi, ref);
+          dev.log(notes.map((e) => e.map((e) => e.pitch.name)).toString(),
               name: "NOTES");
           return Stack(
             children: [
@@ -64,7 +53,7 @@ class _ViewTabState extends ConsumerState<ViewTab> {
                   Expanded(
                     child: ListView.builder(
                       itemBuilder: (context, partNo) =>
-                          Part(parts[partNo], partNo + 1),
+                          Part(parts[partNo], partNo),
                       itemCount: parts.length,
                     ),
                   ),
@@ -75,7 +64,7 @@ class _ViewTabState extends ConsumerState<ViewTab> {
                 child: Align(
                     alignment: Alignment.topRight,
                     child: SaveButton(
-                      parts: snapshot.data!,
+                      parts: notes,
                       partImages: parts,
                     )),
               ),
@@ -102,7 +91,7 @@ class Part extends StatelessWidget {
       children: [
         //Part Title
         Text(
-          "Part $partNo",
+          "Part ${partNo + 1}",
           style: Theme.of(context).textTheme.headlineMedium,
         ),
         //List of Images

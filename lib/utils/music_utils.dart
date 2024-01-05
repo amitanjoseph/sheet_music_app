@@ -1,6 +1,7 @@
 // ignore_for_file: constant_identifier_names
 
 import 'dart:typed_data';
+import 'package:quiver/iterables.dart';
 
 import 'package:sheet_music_app/pigeon/scanner.dart';
 
@@ -167,4 +168,24 @@ Uint8List makeSMN(List<List<Note>> parts) {
     bytes.addByte(0);
   }
   return bytes.toBytes();
+}
+
+List<List<Note>> fromSMN(Uint8List bytes) {
+  final splits = bytes.fold([<int>[]], (previousValue, element) {
+    if (element == 0) {
+      return previousValue + [[]];
+    } else {
+      previousValue.last.add(element);
+      return previousValue;
+    }
+  });
+  var parts = [<Note>[]];
+  for (final [pitches, lengths] in partition(splits, 2)) {
+    parts.add(
+      zip([pitches, lengths])
+          .map((e) => SMNParsing.fromBytes((e[0], e[1])))
+          .toList(),
+    );
+  }
+  return parts;
 }
