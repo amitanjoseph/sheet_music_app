@@ -18,7 +18,7 @@ abstract class Model {
   }
 }
 
-class SheetMusic extends Model {
+class SheetMusicModel extends Model {
   final String name;
   final String file;
   final String? composer;
@@ -28,7 +28,7 @@ class SheetMusic extends Model {
   final String keySig;
   final int tempo;
 
-  SheetMusic({
+  SheetMusicModel({
     required this.name,
     required this.file,
     required this.composer,
@@ -39,7 +39,7 @@ class SheetMusic extends Model {
     required this.tempo,
   }) : super("SheetMusic");
 
-  SheetMusic.fromMap(Map<String, Object?> map)
+  SheetMusicModel.fromMap(Map<String, Object?> map)
       : this(
           name: map["name"] as String,
           file: map["file"] as String,
@@ -76,20 +76,20 @@ class SheetMusic extends Model {
   }
 }
 
-class Image extends Model {
+class ImageModel extends Model {
   final int sheetMusicId;
   final String image;
   final int part;
   final int seqNo;
 
-  Image({
+  ImageModel({
     required this.sheetMusicId,
     required this.image,
     required this.part,
     required this.seqNo,
   }) : super("Images");
 
-  Image.fromMap(Map<String, Object?> map)
+  ImageModel.fromMap(Map<String, Object?> map)
       : this(
           sheetMusicId: map["sheetMusicId"] as int,
           image: map["image"] as String,

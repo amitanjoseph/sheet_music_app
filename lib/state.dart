@@ -44,6 +44,15 @@ class SheetMusic extends _$SheetMusic {
     state = Saved(sheetMusicId: id);
   }
 
+  bool stateIsUnsaved() {
+    switch (state) {
+      case Unsaved():
+        return true;
+      case Saved():
+        return false;
+    }
+  }
+
   void addPart() {
     switch (state) {
       case Unsaved(images: final images):
@@ -69,7 +78,6 @@ class SheetMusic extends _$SheetMusic {
   }
 
   Future<(List<List<Note>>, List<List<File>>)> getMusic() async {
-    dev.log(toString(), name: "HEHHHEHEHEH");
     switch (state) {
       case Unsaved(images: final images):
         return (
@@ -100,9 +108,9 @@ class SheetMusic extends _$SheetMusic {
         final music = fromSMN(bytes);
         final images = (await db
                 .query("Images", where: "sheetMusicId = ?", whereArgs: [id]))
-            .map((e) => Image.fromMap(e))
+            .map((e) => ImageModel.fromMap(e))
             .toList();
-        final List<List<Image>> sortedImages = [];
+        final List<List<ImageModel>> sortedImages = [];
         for (var i = 0; i < music.length; i++) {
           sortedImages.add([]);
         }

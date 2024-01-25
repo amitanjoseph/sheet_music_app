@@ -49,12 +49,12 @@ class Scanner(private val activity: FlutterActivity) : ScannerAPI {
         //Setup OpenCV
         OpenCVLoader.initDebug()
 
-        //Get sheet music image key from assets to fetch the file
+//        //Get sheet music image key from assets to fetch the file
 //        val key = FlutterInjector.instance().flutterLoader()
 //            .getLookupKeyForAsset("images/sheet_music.jpg");
-
-
-        //Get the actual image from a stream of bytes
+//
+//
+//        //Get the actual image from a stream of bytes
 //        val img = activity.assets.openFd(key).use {
 //            val bytes = it.createInputStream().readBytes()
 //            Imgcodecs.imdecode(MatOfByte(*bytes), Imgcodecs.IMREAD_ANYCOLOR)
@@ -122,7 +122,10 @@ class Scanner(private val activity: FlutterActivity) : ScannerAPI {
             it.second.sortedBy { it.second.y }.map { point ->
                 Log.d("Note", point.first.toString())
                 Log.d("Height", point.second.x.toString())
-                Log.d("RelPitch", kotlin.math.round((196 - point.second.x) * 2 / staveHeight).toString())
+                Log.d(
+                    "RelPitch",
+                    kotlin.math.round((196 - point.second.x) * 2 / staveHeight).toString()
+                )
                 Pair(it.first, point)
             }
         }.flatten()
@@ -133,7 +136,7 @@ class Scanner(private val activity: FlutterActivity) : ScannerAPI {
                 Imgproc.circle(
                     img,
                     Point(it.second.second.y + 7, it.second.second.x - 7),
-                    kotlin.math.max(it.first.image.width(), it.first.image.height())/2,
+                    kotlin.math.max(it.first.image.width(), it.first.image.height()) / 2,
                     Scalar(0.0, 0.0, 255.0),
                     3
                 )
@@ -247,7 +250,7 @@ class Scanner(private val activity: FlutterActivity) : ScannerAPI {
         for (i in 1 until sortedStave.size) {
             total += sortedStave[i] - sortedStave[i - 1]
         }
-        return total.toDouble() / (sortedStave.size.toDouble() - 1.0 )
+        return total.toDouble() / (sortedStave.size.toDouble() - 1.0)
     }
 
     private fun resize(template: Template, newHeight: Double): Template {
@@ -264,17 +267,21 @@ class Scanner(private val activity: FlutterActivity) : ScannerAPI {
         return out
     }
 
+    //Given an image, the template image and the stave y-coordinates, return a list of the note values and their coordinate locations in the image.
     private fun getPitches(
         image: Mat,
         template: Template,
         stave: List<Int>
     ): List<Pair<Note, Point>> {
+        //Perform template matching with the template image and the taken image
         val res = Mat()
         Imgproc.matchTemplate(image, template.image, res, Imgproc.TM_CCOEFF_NORMED)
+        //Threshold for the image to be counted as correct
         val thresh = 0.55
         val rows = res.rows()
         val cols = res.cols()
         val matches = mutableListOf<Point>()
+        //Add points to the matched list only if they are above the threshold
         for (row in 0 until rows) {
             for (col in 0 until cols) {
                 val value = res.get(row, col)[0]
@@ -284,44 +291,56 @@ class Scanner(private val activity: FlutterActivity) : ScannerAPI {
             }
         }
 
+        //Chunk together matches that overlap (to prevent the same note from being counted twice in case it is)
         val width = template.image.width()
         val height = template.image.height()
+        //Each chunk is its own list of points representing matches that overlapped together
         val chunks = mutableListOf<MutableList<Point>>()
 
         outer@ for (i in matches) {
             for (j in 0 until chunks.size) {
+                //If a match overlaps with any chunk, add it to that chunk
                 val chunk = chunks[j][0]
                 if (isOverlap(i, chunk, width, height)) {
                     chunks[j].add(i)
                     continue@outer
                 }
             }
+            //Otherwise add it to a new chunk
             chunks.add(mutableListOf(i))
         }
         return chunks.map {
+            //average out the chunk position to get an estimate for the note's position
             val accPoint = it.fold(Point(0.0, 0.0)) { acc, point ->
                 Point(acc.x + point.x, acc.y + point.y)
             }
             Point(accPoint.x / it.size, accPoint.y / it.size)
 
         }.map {
+            //Offset the point to actually be the centre of the image
             Point(it.x + width / 2, it.y + height / 2)
         }.map {
+            //Map each point to a pair of the pitch and its position
             Pair(posToPitch(it.x - 9, stave), it)
         }.map {
+            //Map each pitch to a note
             Pair(Note(it.first, template.length), it.second)
         }
     }
 
+    //Given 2 rectangles at points rect1 & rect2, return whether they overlap or not
     private fun isOverlap(rect1: Point, rect2: Point, width: Int, height: Int): Boolean {
         return rect1.x < rect2.x + width && rect2.x < rect1.x + width && rect1.y < rect2.y + height && rect2.y < rect1.y + height
     }
 
+    //Given a height (y-coordinate) and the stave coordinates, calculate the pitch
     private fun posToPitch(height: Double, stave: List<Int>): Pitch {
         val staveHeight = calcStaveHeight(stave)
+        //The note F5 is the zeroth line on the stave
         val F5 = stave[0]
+        //Calculate the pitch as an offset from F5
         val relPitch = kotlin.math.round((F5 - height + 0.3) * 2 / staveHeight).toInt()
-
+        //Calculate the pitch as F5 plus the offset
         return Pitch.ofRaw(Pitch.F5.raw + relPitch)!!
     }
 }

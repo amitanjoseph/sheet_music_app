@@ -34,7 +34,9 @@ class _ViewTabState extends ConsumerState<ViewTab> {
 
   @override
   Widget build(BuildContext context) {
-    music = ref.watch(sheetMusicProvider.notifier).getMusic();
+    final sheetMusic = ref.watch(sheetMusicProvider.notifier);
+    music = sheetMusic.getMusic();
+
     //The nested list of parts and images
 
     //Render each part using the Part Widget
@@ -60,14 +62,15 @@ class _ViewTabState extends ConsumerState<ViewTab> {
                   Controls(player: player)
                 ],
               ),
-              SafeArea(
-                child: Align(
-                    alignment: Alignment.topRight,
-                    child: SaveButton(
-                      parts: notes,
-                      partImages: parts,
-                    )),
-              ),
+              if (sheetMusic.stateIsUnsaved())
+                SafeArea(
+                  child: Align(
+                      alignment: Alignment.topRight,
+                      child: SaveButton(
+                        parts: notes,
+                        partImages: parts,
+                      )),
+                )
             ],
           );
         } else {
