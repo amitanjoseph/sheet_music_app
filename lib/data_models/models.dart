@@ -1,24 +1,30 @@
 import 'package:sqflite/sqflite.dart';
 
+//The base class for models. Defines common methods
 abstract class Model {
+  //Name of the table - i.e. SheetMusic or Images
   final String table;
 
   Model(this.table);
+  //Method for converting to a map that can be inserted into the database
   Map<String, Object?> toMap();
 
+  //Method that inserts the model into the database
   Future<int> insert(Database db) {
     return db.insert(table, toMap(),
         conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
+  //Default toString
   @override
   String toString() {
-    // ignore: prefer_interpolation_to_compose_strings
-    return table + "${toMap()}";
+    return "$table${toMap()}";
   }
 }
 
+//Model for each of piece of sheet music
 class SheetMusicModel extends Model {
+  //Database Fields
   final String name;
   final String file;
   final String? composer;
@@ -39,6 +45,7 @@ class SheetMusicModel extends Model {
     required this.tempo,
   }) : super("SheetMusic");
 
+  //Takes a map from the database and converts it into an object to use
   SheetMusicModel.fromMap(Map<String, Object?> map)
       : this(
           name: map["name"] as String,
@@ -51,6 +58,7 @@ class SheetMusicModel extends Model {
           tempo: map["tempo"] as int,
         );
 
+  //Converts the model into a map that can be inserted into the database
   @override
   Map<String, Object?> toMap() {
     return {
@@ -65,6 +73,7 @@ class SheetMusicModel extends Model {
     };
   }
 
+  //Overrides the toString method so dates are printed as dates not milliseconds from Epoch
   @override
   String toString() {
     var map = toMap();
@@ -76,7 +85,9 @@ class SheetMusicModel extends Model {
   }
 }
 
+//Models for each image
 class ImageModel extends Model {
+  //Database fields
   final int sheetMusicId;
   final String image;
   final int part;
@@ -89,6 +100,7 @@ class ImageModel extends Model {
     required this.seqNo,
   }) : super("Images");
 
+  //Takes a map from the database and converts it into an object to use
   ImageModel.fromMap(Map<String, Object?> map)
       : this(
           sheetMusicId: map["sheetMusicId"] as int,
@@ -97,6 +109,7 @@ class ImageModel extends Model {
           seqNo: map["sequenceNumber"] as int,
         );
 
+  //Converts the model into a map that can be inserted into the database
   @override
   Map<String, Object?> toMap() {
     return {

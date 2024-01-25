@@ -20,10 +20,13 @@ class SaveButton extends ConsumerStatefulWidget {
 }
 
 class _SaveButtonState extends ConsumerState<SaveButton> {
+  //Key for form so it is uniquely identified
   final _formKey = GlobalKey<FormState>();
+  //Controllers for input fields
   final nameController = TextEditingController();
   final composerController = TextEditingController();
 
+  //Disposal on widget closure
   @override
   void dispose() {
     nameController.dispose();
@@ -37,31 +40,40 @@ class _SaveButtonState extends ConsumerState<SaveButton> {
     return IconButton(
       icon: const Icon(Icons.save_outlined),
       onPressed: () {
+        //Show dialog to allow saving file and specifying name & composer
         showDialog(
           context: context,
           builder: (context) {
             return AlertDialog(
               title: const Text("Save File?"),
+              //Form to allow validation of input fields
               content: Form(
                 key: _formKey,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    //Name input field
                     TextFormField(
                       controller: nameController,
                       decoration: const InputDecoration(labelText: "Name"),
                       validator: (value) {
+                        //Validate name string
                         if (value != null && value.isNotEmpty) {
+                          //Disallowed characters
                           final matches = RegExp("([^ A-Za-z0-9_-])")
                               .allMatches(value)
-                              .fold(<String>[], (previousValue, element) {
+                              //Get unique list of all illegal characters in string
+                              .fold(<String>[], (accum, element) {
+                            //Get the illegal character
                             final string =
                                 value.substring(element.start, element.end);
                             dev.log(string, name: "REGEX MATCHES");
-                            return previousValue.contains(string)
-                                ? previousValue
-                                : previousValue + [string];
+                            //If illegal character not identified yet, add it to accum
+                            return accum.contains(string)
+                                ? accum
+                                : accum + [string];
                           });
+                          //Valid if no illegal matches were made
                           return matches.isEmpty
                               ? null
                               : "Invalid Characters: ${matches.join(" ")}";
@@ -69,6 +81,7 @@ class _SaveButtonState extends ConsumerState<SaveButton> {
                         return "Name must be not empty.";
                       },
                     ),
+                    //Composer input field
                     TextFormField(
                       controller: composerController,
                       decoration: const InputDecoration(labelText: "Composer"),
@@ -77,8 +90,10 @@ class _SaveButtonState extends ConsumerState<SaveButton> {
                 ),
               ),
               actions: [
+                //Save Button
                 TextButton(
                   onPressed: () async {
+                    //If valid
                     if (_formKey.currentState!.validate()) {
                       final name = nameController.text;
                       final composer = composerController.text == ""
@@ -87,10 +102,12 @@ class _SaveButtonState extends ConsumerState<SaveButton> {
                       final dateViewed = DateTime.now().millisecondsSinceEpoch;
                       final dateCreated = DateTime.now().millisecondsSinceEpoch;
                       final (tempo, keySig) = ref.watch(controlsState);
+                      //Write data to SMN file
                       final file = join(
                           (await getApplicationDocumentsDirectory()).path,
                           "$name.smn");
                       await File(file).writeAsBytes(makeSMN(widget.parts));
+                      //Add to database
                       db.when(
                         data: (database) async {
                           final id = await models.SheetMusicModel(
@@ -115,8 +132,10 @@ class _SaveButtonState extends ConsumerState<SaveButton> {
                             }
                           }
                           dev.log("done");
+                          //Close dialog
                           if (context.mounted) Navigator.of(context).pop();
                         },
+                        //Performs logs
                         error: (error, stackTrace) {
                           dev.log("$error", name: "ERROR");
                           dev.log("$stackTrace", name: "STACKTRACE");
@@ -129,6 +148,7 @@ class _SaveButtonState extends ConsumerState<SaveButton> {
                   },
                   child: const Text("Save"),
                 ),
+                //Cancel Button
                 TextButton(
                     onPressed: () {
                       Navigator.of(context).pop();
@@ -143,6 +163,7 @@ class _SaveButtonState extends ConsumerState<SaveButton> {
   }
 }
 
+//Defines the pause/play functionality
 class Controls extends ConsumerWidget {
   const Controls({
     super.key,
