@@ -1,3 +1,4 @@
+import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../state.dart';
@@ -9,38 +10,58 @@ class FileTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final db = ref.watch(databaseProvider);
-    db.when(
-      data: (data) async {
-        final maps = await data.query("SheetMusic");
-        final models = maps.map((map) => SheetMusicModel.fromMap(map)).toList();
-        return ListView.builder(
-          itemCount: models.length,
-          itemBuilder: (context, index) {
-            final model = models[index];
-            return File(title: model.name, composer: model.composer, dateCreated: dateCreated, dateLastViewed: dateLastViewed)
-        },
+    return db.when(
+      data: (data) {
+        final models = data.query("SheetMusic").then(
+            (maps) => maps.map((map) => SheetMusicModel.fromMap(map)).toList());
+        return FutureBuilder(
+          future: models,
+          builder: (context, snapshot) {
+            switch (snapshot.connectionState) {
+              case ConnectionState.done:
+                final models = snapshot.data!;
+                return ListView.builder(
+                  itemCount: models.length,
+                  itemBuilder: (context, index) {
+                    final model = models[index];
+                    return File(
+                        title: model.name,
+                        composer: model.composer,
+                        dateCreated: model.dateCreated,
+                        dateLastViewed: model.dateViewed);
+                  },
+                );
+
+              default:
+                return const CircularProgressIndicator();
+            }
+          },
         );
       },
-    );
-    //Placeholder Content
-    return Container(
-      alignment: Alignment.center,
-      child: const Text('Page 2'),
+      error: (error, stackTrace) {
+        dev.log("$error", name: "ERROR");
+        dev.log("$stackTrace", name: "STACKTRACE");
+        return const SnackBar(content: Text("Error loading files."));
+      },
+      loading: () {
+        return const CircularProgressIndicator();
+      },
     );
   }
 }
 
 class File extends StatelessWidget {
   final String title;
-  final String? composer;
+  final String? _composer;
   final int dateCreated;
   final int dateLastViewed;
   const File(
       {super.key,
       required this.title,
-      required this.composer,
+      required String? composer,
       required this.dateCreated,
-      required this.dateLastViewed});
+      required this.dateLastViewed})
+      : _composer = composer;
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +72,7 @@ class File extends StatelessWidget {
       child: Column(
         children: [
           Text(title),
-          composer != null ? Row(children: [Text(composer)]) : const Row(),
+          if (_composer != null) Row(children: [Text(_composer)]),
           Row(children: [
             Text("$dateCreated"),
             Text("$dateLastViewed"),
