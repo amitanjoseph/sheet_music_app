@@ -48,6 +48,8 @@ class _ViewTabState extends ConsumerState<ViewTab> {
           final player = Player(notes, midi, ref);
           dev.log(notes.map((e) => e.map((e) => e.pitch.name)).toString(),
               name: "NOTES");
+          final nonEmptyParts =
+              parts.where((element) => element.isNotEmpty).toList();
           return Stack(
             children: [
               Column(
@@ -55,8 +57,8 @@ class _ViewTabState extends ConsumerState<ViewTab> {
                   Expanded(
                     child: ListView.builder(
                       itemBuilder: (context, partNo) =>
-                          Part(parts[partNo], partNo),
-                      itemCount: parts.length,
+                          Part(nonEmptyParts[partNo], partNo),
+                      itemCount: nonEmptyParts.length,
                     ),
                   ),
                   Controls(player: player)
@@ -68,7 +70,7 @@ class _ViewTabState extends ConsumerState<ViewTab> {
                       alignment: Alignment.topRight,
                       child: SaveButton(
                         parts: notes,
-                        partImages: parts,
+                        partImages: nonEmptyParts,
                       )),
                 )
             ],

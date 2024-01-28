@@ -1,5 +1,6 @@
 import 'dart:developer' as dev;
 import 'dart:io';
+import 'package:archive/archive.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart';
@@ -106,7 +107,10 @@ class _SaveButtonState extends ConsumerState<SaveButton> {
                       final file = join(
                           (await getApplicationDocumentsDirectory()).path,
                           "$name.smn");
-                      await File(file).writeAsBytes(makeSMN(widget.parts));
+                      final smnBytes = makeSMN(widget.parts);
+                      final bzip2Bytes = BZip2Encoder().encode(smnBytes);
+
+                      await File(file).writeAsBytes(bzip2Bytes);
                       //Add to database
                       db.when(
                         data: (database) async {

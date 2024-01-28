@@ -2,6 +2,7 @@ import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:sheet_music_app/main.dart';
 import '../state.dart';
 import '../data_models/models.dart';
 
@@ -17,8 +18,9 @@ class FileTab extends ConsumerWidget {
       //If database is available, query it
       case AsyncData(:final value):
         //Query sheet music table and generate models for each
-        final models = value.query("SheetMusic").then(
-            (maps) => maps.map((map) => SheetMusicModel.fromMap(map)).toList());
+        final models = value.query("SheetMusic").then((maps) => maps
+            .map((map) => (map["id"] as int, SheetMusicModel.fromMap(map)))
+            .toList());
         //Show loading if query has not fulfilled
         return FutureBuilder(
           future: models,
@@ -32,13 +34,17 @@ class FileTab extends ConsumerWidget {
                   itemCount: models.length,
                   itemBuilder: (context, index) {
                     //Destructure model to get information about it
-                    final SheetMusicModel(
-                      :name,
-                      :composer,
-                      :dateCreated,
-                      :dateViewed
+                    final (
+                      id,
+                      SheetMusicModel(
+                        :name,
+                        :composer,
+                        :dateCreated,
+                        :dateViewed
+                      )
                     ) = models[index];
                     return File(
+                        id: id,
                         title: name,
                         composer: composer,
                         dateCreated: dateCreated,
@@ -65,14 +71,16 @@ class FileTab extends ConsumerWidget {
 }
 
 //The card that displays the information about the sheet music to allow selection
-class File extends StatelessWidget {
+class File extends ConsumerWidget {
   //Info being displayed
   final String title;
   final String? _composer;
   final int dateCreated;
   final int dateLastViewed;
+  final int id;
   const File(
       {super.key,
+      required this.id,
       required this.title,
       required String? composer,
       required this.dateCreated,
@@ -80,7 +88,7 @@ class File extends StatelessWidget {
       : _composer = composer;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     //Convert from ints to dates
     final dateCreated = DateTime.fromMillisecondsSinceEpoch(this.dateCreated);
     final dateLastViewed =
@@ -89,57 +97,63 @@ class File extends StatelessWidget {
     return Card(
       color: Theme.of(context).primaryColor,
       margin: const EdgeInsets.all(8.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 8, left: 8, right: 8),
-            child: Text(
-              title,
-              style: Theme.of(context)
-                  .textTheme
-                  .apply(
-                    displayColor: Colors.white,
-                  )
-                  .headlineMedium,
-            ),
-          ),
-          //If composer has been specfied, show it
-          if (_composer != null)
+      child: InkWell(
+        onTap: () {
+          ref.watch(sheetMusicProvider.notifier).setSaved(id);
+          ref.watch(currentPageProvider.notifier).state = AppPages.viewTab;
+        },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Padding(
-              padding: const EdgeInsets.only(left: 8, right: 8),
-              child: Row(children: [
-                Text(
-                  "Composer - $_composer",
-                  style: Theme.of(context)
-                      .textTheme
-                      .apply(displayColor: Colors.white)
-                      .bodySmall,
-                )
-              ]),
+              padding: const EdgeInsets.only(top: 8, left: 8, right: 8),
+              child: Text(
+                title,
+                style: Theme.of(context)
+                    .textTheme
+                    .apply(
+                      displayColor: Colors.white,
+                    )
+                    .headlineMedium,
+              ),
             ),
-          Padding(
-            padding: const EdgeInsets.only(left: 8, right: 8, bottom: 8),
-            child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
+            //If composer has been specfied, show it
+            if (_composer != null)
+              Padding(
+                padding: const EdgeInsets.only(left: 8, right: 8),
+                child: Row(children: [
                   Text(
-                    "Date Created - ${DateFormat("d/M/y").format(dateCreated)}",
+                    "Composer - $_composer",
                     style: Theme.of(context)
                         .textTheme
                         .apply(displayColor: Colors.white)
                         .bodySmall,
-                  ),
-                  Text(
-                    "Last Viewed - ${DateFormat("d/M/y").format(dateLastViewed)}",
-                    style: Theme.of(context)
-                        .textTheme
-                        .apply(displayColor: Colors.white)
-                        .bodySmall,
-                  ),
+                  )
                 ]),
-          )
-        ],
+              ),
+            Padding(
+              padding: const EdgeInsets.only(left: 8, right: 8, bottom: 8),
+              child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Date Created - ${DateFormat("d/M/y").format(dateCreated)}",
+                      style: Theme.of(context)
+                          .textTheme
+                          .apply(displayColor: Colors.white)
+                          .bodySmall,
+                    ),
+                    Text(
+                      "Last Viewed - ${DateFormat("d/M/y").format(dateLastViewed)}",
+                      style: Theme.of(context)
+                          .textTheme
+                          .apply(displayColor: Colors.white)
+                          .bodySmall,
+                    ),
+                  ]),
+            )
+          ],
+        ),
       ),
     );
   }

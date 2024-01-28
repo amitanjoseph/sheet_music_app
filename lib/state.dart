@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'dart:developer' as dev;
+import 'dart:typed_data';
 
+import 'package:archive/archive.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -104,8 +106,15 @@ class SheetMusic extends _$SheetMusic {
           where: "id = ?",
           whereArgs: [id],
         ))[0]["file"] as String;
+        dev.log(SMNFilePath, name: "PATH");
         final bytes = await File(SMNFilePath).readAsBytes();
-        final music = fromSMN(bytes);
+        dev.log(bytes.toString(), name: "bzip2");
+        final smnBytes = BZip2Decoder().decodeBytes(bytes);
+        dev.log(smnBytes.toString(), name: "BYTES");
+        final music = fromSMN(Uint8List.fromList(smnBytes));
+        dev.log(
+            music.map((e) => e.map((e) => e.toString()).toString()).toString(),
+            name: "MUSIC");
         final images = (await db
                 .query("Images", where: "sheetMusicId = ?", whereArgs: [id]))
             .map((e) => ImageModel.fromMap(e))

@@ -1,5 +1,6 @@
 // ignore_for_file: constant_identifier_names
 
+import 'dart:developer' as dev;
 import 'dart:typed_data';
 import 'package:quiver/iterables.dart';
 
@@ -178,7 +179,8 @@ List<List<Note>> fromSMN(Uint8List bytes) {
       previousValue.last.add(element);
       return previousValue;
     }
-  });
+  }).where((element) => element.isNotEmpty);
+  dev.log(splits.map((e) => e.toString()).toString(), name: "SPLITS");
   var parts = [<Note>[]];
   for (final [pitches, lengths] in partition(splits, 2)) {
     parts.add(
