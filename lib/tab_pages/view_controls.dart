@@ -103,7 +103,7 @@ class _SaveButtonState extends ConsumerState<SaveButton> {
                       final dateViewed = DateTime.now().millisecondsSinceEpoch;
                       final dateCreated = DateTime.now().millisecondsSinceEpoch;
                       final (tempo, keySig) = ref.watch(controlsState);
-                      //Write data to SMN file
+                      //Write data to SMN file and compress with bzip2
                       final file = join(
                           (await getApplicationDocumentsDirectory()).path,
                           "$name.smn");
@@ -174,10 +174,12 @@ class Controls extends ConsumerWidget {
     required this.player,
   });
 
+  //Object representing the music, providing handles to control playback
   final Player player;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    //Get tempo and key signature from global state
     final (tempo, keySig) = ref.watch(controlsState);
     return Container(
       height: 120,
@@ -188,14 +190,16 @@ class Controls extends ConsumerWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
+            //Key Signature selector
             DropdownMenu(
               initialSelection: KeySig.C,
               label: const Text("Key Signature"),
               onSelected: (value) {
+                //Set key signature
                 ref.read(controlsState.notifier).state = (tempo, value!);
-                // player.keysig = value!;
               },
               width: 120,
+              //Render each entry correctly
               dropdownMenuEntries: KeySig.values.map((e) {
                 var name = e.name;
                 name = name.replaceAll('Flat', '♭');
@@ -203,14 +207,18 @@ class Controls extends ConsumerWidget {
                 return DropdownMenuEntry(value: e, label: name);
               }).toList(),
             ),
+            //Pause/Play button widget
             PlaybackButton(player: player),
+            //Tempo drop down selector
             DropdownMenu(
               initialSelection: 120,
               label: const Text("Tempo"),
               width: 120,
               onSelected: (value) {
+                //Set tempo state
                 ref.read(controlsState.notifier).state = (value!, keySig);
               },
+              //Generate 25 tempos to choose from - starting from 60 and with increments of 5
               dropdownMenuEntries: List.generate(25, (index) => 60 + index * 5)
                   .map((i) => DropdownMenuEntry(value: i, label: "♩ = $i"))
                   .toList(),
@@ -222,6 +230,7 @@ class Controls extends ConsumerWidget {
   }
 }
 
+//Pause/Play Button widget
 class PlaybackButton extends StatefulWidget {
   const PlaybackButton({
     super.key,
@@ -235,8 +244,8 @@ class PlaybackButton extends StatefulWidget {
 }
 
 class _PlaybackButtonState extends State<PlaybackButton> {
+  //Whether the button is paused or not
   var paused = true;
-
   void _toggle() {
     setState(() {
       paused = !paused;
@@ -245,13 +254,17 @@ class _PlaybackButtonState extends State<PlaybackButton> {
 
   @override
   Widget build(BuildContext context) {
+    //Enable toggling, switching icons when the button is pressed
     return paused
         ? IconButton(
+            //Show paused button and start playing music
             onPressed: () async {
               dev.log("play");
               _toggle();
               await widget.player.play();
             },
+
+            //Play button arrow
             icon: Icon(
               Icons.play_arrow_outlined,
               size: 100,

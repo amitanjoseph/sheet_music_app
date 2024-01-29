@@ -79,8 +79,9 @@ flutter:
   assets:
     - images/sheet_music.jpg
     - images/template1.png
-    - images/template2.png
     - images/template2.jpg
+    - images/template3.jpg
+    - images/template3.png
     - sf2/piano.sf2
   # To add assets to your application, add an assets section, like this:
   # assets:

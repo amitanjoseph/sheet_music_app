@@ -26,7 +26,8 @@ fun loadTemplateAssets(activity: FlutterActivity): List<Template> {
     //Map of the file name to the note length
     val assets = mapOf(
         "template1.png" to Length.CROTCHET,
-        "template2.jpg" to Length.MINIM
+        "template2.jpg" to Length.MINIM,
+        "template3.png" to Length.SEMIBREVE,
     )
 
     //Map over each of the items in the map, and load the image, returning an instance of the Template class
@@ -37,6 +38,7 @@ fun loadTemplateAssets(activity: FlutterActivity): List<Template> {
         Template(activity.assets.openFd(key).use {
             val bytes = it.createInputStream().readBytes()
             val i = Imgcodecs.imdecode(MatOfByte(*bytes), Imgcodecs.IMREAD_ANYCOLOR)
+            Log.d(item.key, i.channels().toString())
             i
         }, item.value)
     }
