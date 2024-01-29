@@ -35,9 +35,17 @@ class _ViewTabState extends ConsumerState<ViewTab> {
   @override
   Widget build(BuildContext context) {
     final sheetMusic = ref.watch(sheetMusicProvider.notifier);
-    music = sheetMusic.getMusic();
+    final id = sheetMusic.getSheetMusicId();
+    if (id != null) {
+      ref.watch(databaseProvider.future).then((db) async {
+        var model = Map<String, Object?>.from((await db
+            .query("SheetMusic", where: "id = ?", whereArgs: [id]))[0]);
+        model["dateViewed"] = DateTime.now().millisecondsSinceEpoch;
+        await db.update("SheetMusic", model, where: "id = ?", whereArgs: [id]);
+      });
+    }
 
-    //The nested list of parts and images
+    music = sheetMusic.getMusic();
 
     //Render each part using the Part Widget
     return FutureBuilder(

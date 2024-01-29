@@ -6,13 +6,109 @@ import 'package:sheet_music_app/main.dart';
 import '../state.dart';
 import '../data_models/models.dart';
 
+enum FileOrdering {
+  viewDate,
+  alphabetical,
+  composer,
+  creationDate,
+}
+
 class FileTab extends ConsumerWidget {
   const FileTab({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final ordering = ref.watch(fileOrderingProvider);
+    return Column(
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Expanded(
+              child: MenuBar(
+                children: [
+                  SubmenuButton(
+                    menuChildren: [
+                      SubmenuButton(
+                        menuChildren: [
+                          MenuItemButton(
+                            onPressed: () {
+                              ref.read(fileOrderingProvider.notifier).state =
+                                  FileOrdering.viewDate;
+                            },
+                            trailingIcon: ordering == FileOrdering.viewDate
+                                ? const Icon(
+                                    Icons.circle,
+                                    size: 15,
+                                  )
+                                : null,
+                            child: const Text("By View Date"),
+                          ),
+                          MenuItemButton(
+                            onPressed: () {
+                              ref.read(fileOrderingProvider.notifier).state =
+                                  FileOrdering.alphabetical;
+                            },
+                            trailingIcon: ordering == FileOrdering.alphabetical
+                                ? const Icon(
+                                    Icons.circle,
+                                    size: 15,
+                                  )
+                                : null,
+                            child: const Text("A-Z"),
+                          ),
+                          MenuItemButton(
+                            onPressed: () {
+                              ref.read(fileOrderingProvider.notifier).state =
+                                  FileOrdering.composer;
+                            },
+                            trailingIcon: ordering == FileOrdering.composer
+                                ? const Icon(
+                                    Icons.circle,
+                                    size: 15,
+                                  )
+                                : null,
+                            child: const Text("By Composer"),
+                          ),
+                          MenuItemButton(
+                            onPressed: () {
+                              ref.read(fileOrderingProvider.notifier).state =
+                                  FileOrdering.creationDate;
+                            },
+                            trailingIcon: ordering == FileOrdering.creationDate
+                                ? const Icon(
+                                    Icons.circle,
+                                    size: 15,
+                                  )
+                                : null,
+                            child: const Text("By Creation Date"),
+                          ),
+                        ],
+                        child: const MenuAcceleratorLabel("&Sort"),
+                      ),
+                    ],
+                    child: const Icon(Icons.filter_alt_outlined),
+                  )
+                ],
+              ),
+            ),
+          ],
+        ),
+        const Expanded(child: Files()),
+      ],
+    );
+  }
+}
+
+class Files extends ConsumerWidget {
+  const Files({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     //Database handler
     final db = ref.watch(databaseProvider);
+    final ordering = ref.watch(fileOrderingProvider);
     //Switch on db to show different things depending on asynchronous state
     switch (db) {
       //If database is available, query it
@@ -22,40 +118,58 @@ class FileTab extends ConsumerWidget {
             .map((map) => (map["id"] as int, SheetMusicModel.fromMap(map)))
             .toList());
         //Show loading if query has not fulfilled
-        return FutureBuilder(
-          future: models,
-          builder: (context, snapshot) {
-            switch (snapshot.connectionState) {
-              //If query finished
-              case ConnectionState.done:
-                final models = snapshot.data!;
-                //Return a list of all the sheet music files using the File widget
-                return ListView.builder(
-                  itemCount: models.length,
-                  itemBuilder: (context, index) {
-                    //Destructure model to get information about it
-                    final (
-                      id,
-                      SheetMusicModel(
-                        :name,
-                        :composer,
-                        :dateCreated,
-                        :dateViewed
-                      )
-                    ) = models[index];
-                    return File(
-                        id: id,
-                        title: name,
-                        composer: composer,
-                        dateCreated: dateCreated,
-                        dateLastViewed: dateViewed);
-                  },
-                );
+        return Consumer(
+          builder: (context, ref, child) {
+            return FutureBuilder(
+              future: models,
+              builder: (context, snapshot) {
+                switch (snapshot.connectionState) {
+                  //If query finished
+                  case ConnectionState.done:
+                    var models = snapshot.data!;
+                    models.sort((a, b) {
+                      switch (ordering) {
+                        case FileOrdering.viewDate:
+                          return (-a.$2.dateViewed).compareTo(-b.$2.dateViewed);
+                        case FileOrdering.alphabetical:
+                          return a.$2.name.compareTo(b.$2.name);
+                        case FileOrdering.composer:
+                          return (a.$2.composer ?? "")
+                              .compareTo(b.$2.composer ?? "");
+                        case FileOrdering.creationDate:
+                          return (-a.$2.dateCreated)
+                              .compareTo(-b.$2.dateCreated);
+                      }
+                    });
+                    //Return a list of all the sheet music files using the File widget
+                    return ListView.builder(
+                      itemCount: models.length,
+                      itemBuilder: (context, index) {
+                        //Destructure model to get information about it
+                        final (
+                          id,
+                          SheetMusicModel(
+                            :name,
+                            :composer,
+                            :dateCreated,
+                            :dateViewed
+                          )
+                        ) = models[index];
+                        return File(
+                            id: id,
+                            title: name,
+                            composer: composer,
+                            dateCreated: dateCreated,
+                            dateLastViewed: dateViewed);
+                      },
+                    );
 
-              //Loading spinner otherwise
-              default:
-                return const CircularProgressIndicator();
-            }
+                  //Loading spinner otherwise
+                  default:
+                    return const CircularProgressIndicator();
+                }
+              },
+            );
           },
         );
       //If the database errors out, perform logging and popup warning

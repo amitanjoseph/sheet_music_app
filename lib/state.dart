@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'dart:developer' as dev;
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
@@ -8,6 +8,7 @@ import 'package:path/path.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sheet_music_app/data_models/models.dart';
 import 'package:sheet_music_app/pigeon/scanner.dart';
+import 'package:sheet_music_app/tab_pages/files.dart' as files;
 import 'package:sheet_music_app/utils/music_utils.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -17,6 +18,8 @@ part 'state.g.dart';
 
 //State of current open tab
 final currentPageProvider = StateProvider((ref) => AppPages.homeTab);
+final fileOrderingProvider =
+    StateProvider((ref) => files.FileOrdering.viewDate);
 
 //Variable for storing the newly scanned sheet music
 //images before they are saved
@@ -52,6 +55,15 @@ class SheetMusic extends _$SheetMusic {
         return true;
       case Saved():
         return false;
+    }
+  }
+
+  int? getSheetMusicId() {
+    switch (state) {
+      case Unsaved():
+        return null;
+      case Saved(sheetMusicId: final id):
+        return id;
     }
   }
 
