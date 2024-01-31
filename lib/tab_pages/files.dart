@@ -13,13 +13,175 @@ enum FileOrdering {
   creationDate,
 }
 
+sealed class Filters {}
+
+class Composer implements Filters {
+  final String? composer;
+  const Composer(this.composer);
+}
+
+class CreationDate implements Filters {
+  final DateTime date;
+  const CreationDate(this.date);
+}
+
+class None implements Filters {}
+
+class FilterButton extends ConsumerWidget {
+  const FilterButton({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ordering = ref.watch(fileOrderingProvider);
+    final composersAndDateSet =
+        ref.watch(databaseProvider.future).then((db) async {
+      final records =
+          await db.query("SheetMusic", columns: ["composer", "dateCreated"]);
+      final composerSet = Set<String?>.from(records.map((i) => i["composer"]));
+      final creationDateSet =
+          Set<int>.from(records.map((i) => i["dateCreated"]));
+      dev.log(composerSet.toString(), name: "COMPOSERS");
+      dev.log(creationDateSet.toString(), name: "CREATION DATES");
+      return (composerSet.toList(), creationDateSet.toList());
+    });
+
+    final filter = ref.watch(filterProvider);
+    return SubmenuButton(
+      menuChildren: [
+        SubmenuButton(
+          menuChildren: [
+            MenuItemButton(
+              onPressed: () {
+                ref.read(fileOrderingProvider.notifier).state =
+                    FileOrdering.viewDate;
+              },
+              trailingIcon: ordering == FileOrdering.viewDate
+                  ? const Icon(
+                      Icons.circle,
+                      size: 15,
+                    )
+                  : null,
+              child: const Text("By View Date"),
+            ),
+            MenuItemButton(
+              onPressed: () {
+                ref.read(fileOrderingProvider.notifier).state =
+                    FileOrdering.alphabetical;
+              },
+              trailingIcon: ordering == FileOrdering.alphabetical
+                  ? const Icon(
+                      Icons.circle,
+                      size: 15,
+                    )
+                  : null,
+              child: const Text("A-Z"),
+            ),
+            MenuItemButton(
+              onPressed: () {
+                ref.read(fileOrderingProvider.notifier).state =
+                    FileOrdering.composer;
+              },
+              trailingIcon: ordering == FileOrdering.composer
+                  ? const Icon(
+                      Icons.circle,
+                      size: 15,
+                    )
+                  : null,
+              child: const Text("By Composer"),
+            ),
+            MenuItemButton(
+              onPressed: () {
+                ref.read(fileOrderingProvider.notifier).state =
+                    FileOrdering.creationDate;
+              },
+              trailingIcon: ordering == FileOrdering.creationDate
+                  ? const Icon(
+                      Icons.circle,
+                      size: 15,
+                    )
+                  : null,
+              child: const Text("By Creation Date"),
+            ),
+          ],
+          child: const MenuAcceleratorLabel("&Sort"),
+        ),
+        FutureBuilder(
+          future: composersAndDateSet,
+          builder: (context, snapshot) {
+            switch (snapshot.connectionState) {
+              case ConnectionState.done:
+                final (composers, creationDates) = snapshot.data!;
+                return SubmenuButton(menuChildren: [
+                  SubmenuButton(
+                      menuChildren: composers.map((item) {
+                        return MenuItemButton(
+                            trailingIcon: switch (filter) {
+                              Composer(composer: final composer) =>
+                                composer == item
+                                    ? const Icon(Icons.circle, size: 15)
+                                    : null,
+                              _ => null
+                            },
+                            onPressed: () {
+                              switch (filter) {
+                                case Composer(composer: final composer):
+                                  dev.log(composer.toString());
+                                  if (composer == item) {
+                                    ref.watch(filterProvider.notifier).state =
+                                        None();
+                                  } else {
+                                    ref.watch(filterProvider.notifier).state =
+                                        Composer(item);
+                                  }
+                                  break;
+                                default:
+                                  ref.watch(filterProvider.notifier).state =
+                                      Composer(item);
+                              }
+                            },
+                            child: Text(item ?? "Unknown"));
+                      }).toList(),
+                      child: const MenuAcceleratorLabel("&By Composer")),
+                  MenuItemButton(
+                    child: const Text("By Creation Date"),
+                    onPressed: () async {
+                      var validDays = creationDates
+                          .map((date) =>
+                              DateTime.fromMillisecondsSinceEpoch(date))
+                          .toList();
+                      validDays.sort();
+                      dev.log(validDays.map((e) => e.toString()).toString(),
+                          name: "VALID DAYS");
+                      final date = await showDatePicker(
+                        context: context,
+                        firstDate: validDays.first,
+                        lastDate: validDays.last,
+                        selectableDayPredicate: (day) =>
+                            validDays.contains(day),
+                      );
+                      ref.watch(filterProvider.notifier).state =
+                          CreationDate(date!);
+                    },
+                  )
+                ], child: const MenuAcceleratorLabel("&Filter"));
+
+              default:
+                return const CircularProgressIndicator();
+            }
+          },
+        )
+      ],
+      child: const Icon(Icons.filter_alt_outlined),
+    );
+  }
+}
+
 class FileTab extends ConsumerWidget {
   const FileTab({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final ordering = ref.watch(fileOrderingProvider);
-    return Column(
+    return const Column(
       children: [
         Row(
           mainAxisSize: MainAxisSize.min,
@@ -28,74 +190,15 @@ class FileTab extends ConsumerWidget {
             Expanded(
               child: MenuBar(
                 children: [
-                  SubmenuButton(
-                    menuChildren: [
-                      SubmenuButton(
-                        menuChildren: [
-                          MenuItemButton(
-                            onPressed: () {
-                              ref.read(fileOrderingProvider.notifier).state =
-                                  FileOrdering.viewDate;
-                            },
-                            trailingIcon: ordering == FileOrdering.viewDate
-                                ? const Icon(
-                                    Icons.circle,
-                                    size: 15,
-                                  )
-                                : null,
-                            child: const Text("By View Date"),
-                          ),
-                          MenuItemButton(
-                            onPressed: () {
-                              ref.read(fileOrderingProvider.notifier).state =
-                                  FileOrdering.alphabetical;
-                            },
-                            trailingIcon: ordering == FileOrdering.alphabetical
-                                ? const Icon(
-                                    Icons.circle,
-                                    size: 15,
-                                  )
-                                : null,
-                            child: const Text("A-Z"),
-                          ),
-                          MenuItemButton(
-                            onPressed: () {
-                              ref.read(fileOrderingProvider.notifier).state =
-                                  FileOrdering.composer;
-                            },
-                            trailingIcon: ordering == FileOrdering.composer
-                                ? const Icon(
-                                    Icons.circle,
-                                    size: 15,
-                                  )
-                                : null,
-                            child: const Text("By Composer"),
-                          ),
-                          MenuItemButton(
-                            onPressed: () {
-                              ref.read(fileOrderingProvider.notifier).state =
-                                  FileOrdering.creationDate;
-                            },
-                            trailingIcon: ordering == FileOrdering.creationDate
-                                ? const Icon(
-                                    Icons.circle,
-                                    size: 15,
-                                  )
-                                : null,
-                            child: const Text("By Creation Date"),
-                          ),
-                        ],
-                        child: const MenuAcceleratorLabel("&Sort"),
-                      ),
-                    ],
-                    child: const Icon(Icons.filter_alt_outlined),
-                  )
+                  SafeArea(
+                    child: FilterButton(),
+                  ),
                 ],
               ),
             ),
           ],
         ),
-        const Expanded(child: Files()),
+        Expanded(child: Files()),
       ],
     );
   }
@@ -141,6 +244,19 @@ class Files extends ConsumerWidget {
                               .compareTo(-b.$2.dateCreated);
                       }
                     });
+                    models = models.where((element) {
+                      switch (ref.watch(filterProvider)) {
+                        case Composer(composer: final composer):
+                          return element.$2.composer == composer;
+                        case CreationDate(date: final date):
+                          return DateUtils.isSameDay(
+                              date,
+                              DateTime.fromMillisecondsSinceEpoch(
+                                  element.$2.dateCreated));
+                        case None():
+                          return true;
+                      }
+                    }).toList();
                     //Return a list of all the sheet music files using the File widget
                     return ListView.builder(
                       itemCount: models.length,

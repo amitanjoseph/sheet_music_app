@@ -20,6 +20,7 @@ part 'state.g.dart';
 final currentPageProvider = StateProvider((ref) => AppPages.homeTab);
 final fileOrderingProvider =
     StateProvider((ref) => files.FileOrdering.viewDate);
+final filterProvider = StateProvider<files.Filters>((ref) => files.None());
 
 //Variable for storing the newly scanned sheet music
 //images before they are saved
