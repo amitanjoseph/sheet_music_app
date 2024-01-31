@@ -33,7 +33,8 @@ class Player {
   }
 
   Future<void> _playNote(Note note) async {
-    final (tempo, keysig) = ref.read(controlsState);
+    final (tempo, keysig) =
+        ref.watch(sheetMusicProvider.notifier).getTempoAndKeySig();
     final pitch = transposedPitchToMidi(note.pitch, keysig);
     final length = lengthToBeats(note.length);
     midi.playMidiNote(midi: pitch);

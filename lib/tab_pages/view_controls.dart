@@ -102,7 +102,9 @@ class _SaveButtonState extends ConsumerState<SaveButton> {
                           : composerController.text;
                       final dateViewed = DateTime.now().millisecondsSinceEpoch;
                       final dateCreated = DateTime.now().millisecondsSinceEpoch;
-                      final (tempo, keySig) = ref.watch(controlsState);
+                      final (tempo, keySig) = ref
+                          .watch(sheetMusicProvider.notifier)
+                          .getTempoAndKeySig();
                       //Write data to SMN file and compress with bzip2
                       final file = join(
                           (await getApplicationDocumentsDirectory()).path,
@@ -179,8 +181,10 @@ class Controls extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final sheetMusicControls = ref.watch(sheetMusicProvider.notifier);
+    final (tempo, keySig) =
+        ref.watch(sheetMusicProvider.notifier).getTempoAndKeySig();
     //Get tempo and key signature from global state
-    final (tempo, keySig) = ref.watch(controlsState);
     return Container(
       height: 120,
       width: double.infinity,
@@ -192,11 +196,12 @@ class Controls extends ConsumerWidget {
           children: [
             //Key Signature selector
             DropdownMenu(
-              initialSelection: KeySig.C,
+              initialSelection: keySig,
               label: const Text("Key Signature"),
               onSelected: (value) async {
                 //Set key signature
-                ref.read(controlsState.notifier).state = (tempo, value!);
+
+                await sheetMusicControls.setKeySig(value!);
               },
               width: 120,
               //Render each entry correctly
@@ -211,12 +216,12 @@ class Controls extends ConsumerWidget {
             PlaybackButton(player: player),
             //Tempo drop down selector
             DropdownMenu(
-              initialSelection: 120,
+              initialSelection: tempo,
               label: const Text("Tempo"),
               width: 120,
-              onSelected: (value) {
+              onSelected: (value) async {
                 //Set tempo state
-                ref.read(controlsState.notifier).state = (value!, keySig);
+                await sheetMusicControls.setTempo(value!);
               },
               //Generate 25 tempos to choose from - starting from 60 and with increments of 5
               dropdownMenuEntries: List.generate(25, (index) => 60 + index * 5)

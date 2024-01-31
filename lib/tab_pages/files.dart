@@ -342,8 +342,8 @@ class File extends ConsumerWidget {
       color: Theme.of(context).primaryColor,
       margin: const EdgeInsets.all(8.0),
       child: InkWell(
-        onTap: () {
-          ref.watch(sheetMusicProvider.notifier).setSaved(id);
+        onTap: () async {
+          await ref.watch(sheetMusicProvider.notifier).setSaved(id);
           ref.watch(currentPageProvider.notifier).state = AppPages.viewTab;
         },
         child: Column(

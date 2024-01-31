@@ -26,16 +26,26 @@ final filterProvider = StateProvider<files.Filters>((ref) => files.None());
 //images before they are saved
 // final temporarySheetMusicImageProvider = StateProvider((ref) => [<File>[]]);
 
-sealed class SheetMusicState {}
-
-class Saved implements SheetMusicState {
-  final int sheetMusicId;
-  const Saved({required this.sheetMusicId});
+sealed class SheetMusicState {
+  final KeySig keySignature;
+  final int tempo;
+  const SheetMusicState({required this.keySignature, required this.tempo});
 }
 
-class Unsaved implements SheetMusicState {
-  List<List<File>> images;
-  Unsaved({required this.images});
+class Saved extends SheetMusicState {
+  final int sheetMusicId;
+  const Saved(
+      {required this.sheetMusicId,
+      required super.keySignature,
+      required super.tempo});
+}
+
+class Unsaved extends SheetMusicState {
+  final List<List<File>> images;
+  Unsaved(
+      {required this.images,
+      required super.keySignature,
+      required super.tempo});
 }
 
 @riverpod
@@ -43,11 +53,25 @@ class SheetMusic extends _$SheetMusic {
   @override
   SheetMusicState build() {
     dev.log("rebuilt");
-    return Unsaved(images: [[]]);
+    return Unsaved(images: [[]], keySignature: KeySig.C, tempo: 100);
   }
 
-  void setSaved(int id) {
-    state = Saved(sheetMusicId: id);
+  Future<void> setSaved(int id) async {
+    final db = await ref
+        .listen(
+          databaseProvider.future,
+          (previous, next) {},
+        )
+        .read();
+    final sheetMusic = (await db.query("SheetMusic",
+        columns: ["keySignature", "tempo"],
+        where: "id = ?",
+        whereArgs: [id]))[0];
+    final tempo = sheetMusic["tempo"] as int;
+    final keySig = KeySig.fromString(sheetMusic["keySignature"] as String);
+    // const tempo = 100;
+    // const keySig = KeySig.C;
+    state = Saved(sheetMusicId: id, tempo: tempo, keySignature: keySig);
   }
 
   bool stateIsUnsaved() {
@@ -70,8 +94,13 @@ class SheetMusic extends _$SheetMusic {
 
   void addPart() {
     switch (state) {
-      case Unsaved(images: final images):
-        state = Unsaved(images: images + [[]]);
+      case Unsaved(
+          images: final images,
+          keySignature: final keySig,
+          tempo: final tempo
+        ):
+        state =
+            Unsaved(images: images + [[]], keySignature: keySig, tempo: tempo);
         dev.log(toString(), name: "add part");
         break;
       case Saved():
@@ -81,14 +110,56 @@ class SheetMusic extends _$SheetMusic {
 
   void addImage(File image) {
     switch (state) {
-      case Unsaved(images: final images):
+      case Unsaved(
+          images: final images,
+          keySignature: final keySig,
+          tempo: final tempo
+        ):
         final List<List<File>> imageCopy =
             List<List<File>>.from(images.map((e) => List<File>.from(e)));
         imageCopy.last.add(image);
-        state = Unsaved(images: imageCopy);
+        state = Unsaved(images: imageCopy, keySignature: keySig, tempo: tempo);
         dev.log(toString(), name: "add image");
       case Saved():
         break;
+    }
+  }
+
+  (int, KeySig) getTempoAndKeySig() {
+    return (state.tempo, state.keySignature);
+  }
+
+  Future<void> setTempo(int tempo) async {
+    switch (state) {
+      case Unsaved(
+          images: final images,
+          keySignature: final keySig,
+        ):
+        state = Unsaved(images: images, keySignature: keySig, tempo: tempo);
+      case Saved(sheetMusicId: final id, keySignature: final keySig):
+        state = Saved(sheetMusicId: id, keySignature: keySig, tempo: tempo);
+        final db = await ref.watch(databaseProvider.future);
+        var model = Map<String, Object?>.from((await db
+            .query("SheetMusic", where: "id = ?", whereArgs: [id]))[0]);
+        model["tempo"] = tempo.toString();
+        await db.update("SheetMusic", model, where: "id = ?", whereArgs: [id]);
+    }
+  }
+
+  Future<void> setKeySig(KeySig keySig) async {
+    switch (state) {
+      case Unsaved(
+          images: final images,
+          tempo: final tempo,
+        ):
+        state = Unsaved(images: images, keySignature: keySig, tempo: tempo);
+      case Saved(sheetMusicId: final id, tempo: final tempo):
+        state = Saved(sheetMusicId: id, keySignature: keySig, tempo: tempo);
+        final db = await ref.watch(databaseProvider.future);
+        var model = Map<String, Object?>.from((await db
+            .query("SheetMusic", where: "id = ?", whereArgs: [id]))[0]);
+        model["keySignature"] = keySig.toString();
+        await db.update("SheetMusic", model, where: "id = ?", whereArgs: [id]);
     }
   }
 
@@ -106,12 +177,9 @@ class SheetMusic extends _$SheetMusic {
           images
         );
       case Saved(sheetMusicId: final id):
-        final db = await ref
-            .listen(
-              databaseProvider.future,
-              (previous, next) {},
-            )
-            .read();
+        final db = await ref.watch(
+          databaseProvider.future,
+        );
         // ignore: non_constant_identifier_names
         final SMNFilePath = (await db.query(
           "SheetMusic",
@@ -159,8 +227,6 @@ class SheetMusic extends _$SheetMusic {
     }
   }
 }
-
-final controlsState = StateProvider((ref) => (120, KeySig.C));
 
 @riverpod
 Future<Database> database(DatabaseRef ref) async {
