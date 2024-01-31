@@ -6,6 +6,8 @@ import 'package:sheet_music_app/main.dart';
 import '../state.dart';
 import '../data_models/models.dart';
 
+final scaffoldKey = GlobalKey();
+
 enum FileOrdering {
   viewDate,
   alphabetical,
@@ -38,8 +40,18 @@ class FilterButton extends ConsumerWidget {
       final records =
           await db.query("SheetMusic", columns: ["composer", "dateCreated"]);
       final composerSet = Set<String?>.from(records.map((i) => i["composer"]));
-      final creationDateSet =
-          Set<int>.from(records.map((i) => i["dateCreated"]));
+      final creationDateSet = records
+          .map((i) => i["dateCreated"])
+          .map((e) => DateTime.fromMillisecondsSinceEpoch(e as int))
+          .fold(<DateTime>[], (previousValue, date) {
+        if (previousValue
+            .where((otherDate) => DateUtils.isSameDay(date, otherDate))
+            .isEmpty) {
+          return previousValue + [date];
+        } else {
+          return previousValue;
+        }
+      });
       dev.log(composerSet.toString(), name: "COMPOSERS");
       dev.log(creationDateSet.toString(), name: "CREATION DATES");
       return (composerSet.toList(), creationDateSet.toList());
@@ -145,19 +157,18 @@ class FilterButton extends ConsumerWidget {
                   MenuItemButton(
                     child: const Text("By Creation Date"),
                     onPressed: () async {
-                      var validDays = creationDates
-                          .map((date) =>
-                              DateTime.fromMillisecondsSinceEpoch(date))
-                          .toList();
+                      var validDays = creationDates;
                       validDays.sort();
                       dev.log(validDays.map((e) => e.toString()).toString(),
                           name: "VALID DAYS");
                       final date = await showDatePicker(
-                        context: context,
+                        context: scaffoldKey.currentContext!,
                         firstDate: validDays.first,
                         lastDate: validDays.last,
-                        selectableDayPredicate: (day) =>
-                            validDays.contains(day),
+                        selectableDayPredicate: (day) => validDays
+                            .where(
+                                (element) => DateUtils.isSameDay(day, element))
+                            .isNotEmpty,
                       );
                       ref.watch(filterProvider.notifier).state =
                           CreationDate(date!);
@@ -181,25 +192,28 @@ class FileTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return const Column(
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            Expanded(
-              child: MenuBar(
-                children: [
-                  SafeArea(
-                    child: FilterButton(),
-                  ),
-                ],
+    return Scaffold(
+      key: scaffoldKey,
+      body: const Column(
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Expanded(
+                child: MenuBar(
+                  children: [
+                    SafeArea(
+                      child: FilterButton(),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
-        Expanded(child: Files()),
-      ],
+            ],
+          ),
+          Expanded(child: Files()),
+        ],
+      ),
     );
   }
 }

@@ -194,7 +194,7 @@ class Controls extends ConsumerWidget {
             DropdownMenu(
               initialSelection: KeySig.C,
               label: const Text("Key Signature"),
-              onSelected: (value) {
+              onSelected: (value) async {
                 //Set key signature
                 ref.read(controlsState.notifier).state = (tempo, value!);
               },
