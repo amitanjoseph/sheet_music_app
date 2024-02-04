@@ -120,7 +120,11 @@ class Scanner(private val activity: FlutterActivity) : ScannerAPI {
                 3
             )
         }
+        //notes is the final list of notes that gets returned
+        //Here information about each note is logged
+        //Then the circle is drawn around the note head and the actual note is returned
         val notes = points.map {
+            //Sort notes from left-to-right and output info
             it.second.sortedBy { it.second.y }.map { point ->
                 Log.d("Note", point.first.toString())
                 Log.d("Height", point.second.x.toString())
@@ -131,14 +135,16 @@ class Scanner(private val activity: FlutterActivity) : ScannerAPI {
                 Pair(it.first, point)
             }
         }.flatten()
+            //Sort from left-to-right again
             .sortedBy { it.second.second.y }
             .map {
-//                Log.d("Loc", it.second.toString())
-//                Log.d("size", it.first.image.size().toString())
+                Log.d("Loc", it.second.toString())
+                Log.d("size", it.first.image.size().toString())
+                //Draw circle around note head
                 Imgproc.circle(
                     img,
                     Point(it.second.second.y + 7, it.second.second.x - 7),
-                    kotlin.math.max(it.first.image.width(), it.first.image.height()) / 2,
+                    (staveHeight / 2).toInt(),
                     Scalar(0.0, 0.0, 255.0),
                     3
                 )
@@ -255,6 +261,7 @@ class Scanner(private val activity: FlutterActivity) : ScannerAPI {
         return total.toDouble() / (sortedStave.size.toDouble() - 1.0)
     }
 
+    //Resize the given template to the newHeight
     private fun resize(template: Template, newHeight: Double): Template {
         val out = template.copy()
         val factor = (newHeight / template.image.size().height)
