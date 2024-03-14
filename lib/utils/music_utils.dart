@@ -1,11 +1,11 @@
 // ignore_for_file: constant_identifier_names
 
-import 'dart:developer' as dev;
 import 'dart:typed_data';
 import 'package:quiver/iterables.dart';
 
 import 'package:sheet_music_app/pigeon/scanner.dart';
 
+//The 2 types of key signature and the related sharps and flats
 enum KeySigType {
   sharp,
   flat;
@@ -14,6 +14,7 @@ enum KeySigType {
   static const flats = ["B", "E", "A", "D", "G", "C", "F"];
 }
 
+//Each key signature, consisting of the type and the number of accidentals
 enum KeySig {
   C(KeySigType.sharp, 0),
   G(KeySigType.sharp, 1),
@@ -35,6 +36,7 @@ enum KeySig {
 
   const KeySig(this.type, this.numberOfAccidentals);
 
+  //Print the Key Signature in a friendly format
   @override
   String toString() {
     if (name.length == 1) {
@@ -51,6 +53,7 @@ enum KeySig {
     }
   }
 
+  //Parse a string key signature to KeySig (for db deserialisation)
   static KeySig fromString(String input) {
     switch (input) {
       case "C":
@@ -87,8 +90,11 @@ enum KeySig {
   }
 }
 
+//Transpose pitch to the correct key signature
 int transposedPitchToMidi(Pitch pitch, KeySig scale) {
+  //Get note name and number
   final [note, number] = pitch.name.split('');
+  //First few notes and their midi values
   final noteToMidi = {
     "A": 21,
     "B": 23,
@@ -99,24 +105,30 @@ int transposedPitchToMidi(Pitch pitch, KeySig scale) {
     "G": 31,
   };
 
+  //Offset from the noteToMidi values
   final offset =
       note != 'A' && note != 'B' ? int.parse(number) - 1 : int.parse(number);
-
+  //Calculate midi number
   final midi = noteToMidi[note]! + 12 * offset;
+  //Modify note based on accidentals
   switch (scale.type) {
     case KeySigType.sharp:
+      //If note should be sharp, increase pitch by semitone
       final sharps = KeySigType.sharps.take(scale.numberOfAccidentals).toList();
       return midi + (sharps.contains(note) ? 1 : 0);
     case KeySigType.flat:
+      //If note should be flat, decrease pitch by semitone
       final flats = KeySigType.flats.take(scale.numberOfAccidentals).toList();
       return midi + (flats.contains(note) ? -1 : 0);
   }
 }
 
+//Convert bpm to number of seconds beat should be held
 double bpmToSecondsPerBeat(int bpm) {
   return 60 / bpm;
 }
 
+//Convert length to number of beats
 double lengthToBeats(Length length) {
   switch (length) {
     case Length.breve:
@@ -138,6 +150,7 @@ double lengthToBeats(Length length) {
   }
 }
 
+//Extension methods to convert note to and from bytes (for SMN)
 extension SMNParsing on Note {
   (int, int) toBytes() {
     return (pitch.index + 1, length.index + 1);
@@ -151,9 +164,14 @@ extension SMNParsing on Note {
   }
 }
 
+//Return bytes for SMN file from music
 Uint8List makeSMN(List<List<Note>> parts) {
+  //For each part, convert the music into a tuple of
+  //a list of the note lengths and a list of the note pitches
   final byteParts = parts.map((i) {
+    //Convert to SMN bytes
     final bytes = i.map((e) => e.toBytes());
+    //Seperate pitches and lengths
     var out = (<int>[], <int>[]);
     for (final (pitch, length) in bytes) {
       out.$1.add(pitch);
@@ -161,7 +179,9 @@ Uint8List makeSMN(List<List<Note>> parts) {
     }
     return out;
   });
+  //Bytes to return
   final bytes = BytesBuilder();
+  //Add pitches and lengths in correct format as defined in SMN spec
   for (final (pitches, lengths) in byteParts) {
     bytes.add(pitches);
     bytes.addByte(0);
@@ -171,7 +191,9 @@ Uint8List makeSMN(List<List<Note>> parts) {
   return bytes.toBytes();
 }
 
+//Deserialise bytes to 2D list of notes for music
 List<List<Note>> fromSMN(Uint8List bytes) {
+  //Split bytes into contiguous lists of pitches and lengths
   final splits = bytes.fold([<int>[]], (previousValue, element) {
     if (element == 0) {
       return previousValue + [[]];
@@ -180,9 +202,10 @@ List<List<Note>> fromSMN(Uint8List bytes) {
       return previousValue;
     }
   }).where((element) => element.isNotEmpty);
-  dev.log(splits.map((e) => e.toString()).toString(), name: "SPLITS");
   var parts = [<Note>[]];
+  //Get each consecutive pair of pitches and lengths
   for (final [pitches, lengths] in partition(splits, 2)) {
+    //Zip and convert each pitch and length to a note
     parts.add(
       zip([pitches, lengths])
           .map((e) => SMNParsing.fromBytes((e[0], e[1])))

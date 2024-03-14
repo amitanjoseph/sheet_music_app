@@ -22,6 +22,42 @@ abstract class Model {
   }
 }
 
+//Models for each image
+class ImageModel extends Model {
+  //Database fields
+  final int sheetMusicId;
+  final String image;
+  final int part;
+  final int seqNo;
+
+  ImageModel({
+    required this.sheetMusicId,
+    required this.image,
+    required this.part,
+    required this.seqNo,
+  }) : super("Images");
+
+  //Takes a map from the database and converts it into an object to use
+  ImageModel.fromMap(Map<String, Object?> map)
+      : this(
+          sheetMusicId: map["sheetMusicId"] as int,
+          image: map["image"] as String,
+          part: map["part"] as int,
+          seqNo: map["sequenceNumber"] as int,
+        );
+
+  //Converts the model into a map that can be inserted into the database
+  @override
+  Map<String, Object?> toMap() {
+    return {
+      "sheetMusicId": sheetMusicId,
+      "image": image,
+      "part": part,
+      "sequenceNumber": seqNo,
+    };
+  }
+}
+
 //Model for each of piece of sheet music
 class SheetMusicModel extends Model {
   //Database Fields
@@ -82,41 +118,5 @@ class SheetMusicModel extends Model {
     map["dateCreated"] =
         DateTime.fromMillisecondsSinceEpoch(map["dateCreated"] as int);
     return "SheetMusic$map";
-  }
-}
-
-//Models for each image
-class ImageModel extends Model {
-  //Database fields
-  final int sheetMusicId;
-  final String image;
-  final int part;
-  final int seqNo;
-
-  ImageModel({
-    required this.sheetMusicId,
-    required this.image,
-    required this.part,
-    required this.seqNo,
-  }) : super("Images");
-
-  //Takes a map from the database and converts it into an object to use
-  ImageModel.fromMap(Map<String, Object?> map)
-      : this(
-          sheetMusicId: map["sheetMusicId"] as int,
-          image: map["image"] as String,
-          part: map["part"] as int,
-          seqNo: map["sequenceNumber"] as int,
-        );
-
-  //Converts the model into a map that can be inserted into the database
-  @override
-  Map<String, Object?> toMap() {
-    return {
-      "sheetMusicId": sheetMusicId,
-      "image": image,
-      "part": part,
-      "sequenceNumber": seqNo,
-    };
   }
 }

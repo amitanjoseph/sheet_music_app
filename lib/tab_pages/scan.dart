@@ -1,4 +1,3 @@
-import 'dart:developer' as dev;
 import 'dart:io';
 import 'dart:math';
 
@@ -74,7 +73,7 @@ class Camera extends ConsumerStatefulWidget {
     super.key,
     required this.controller,
   });
-
+  //Camera handle
   final CameraController controller;
 
   @override
@@ -93,19 +92,13 @@ class _CameraState extends ConsumerState<Camera> {
   }
 
   Future<String> takePicture() async {
-    //Lock taking picture
+    //Mutex lock for taking picture
     takingPicture.value = true;
     //Take picture and store reference in image
     widget.controller.setFlashMode(flash ? FlashMode.always : FlashMode.off);
     final image = await widget.controller.takePicture();
-    // //Get path to application documents directory
-    // final dir = await getApplicationDocumentsDirectory();
-    // //Save image to the path
-    // final imagePath = path.join(dir.path, 'img.png');
-    // await image.saveTo(imagePath);
-    //Unlock taking picture
     takingPicture.value = false;
-    //Return path for testing
+    //Return path to save
     return image.path;
   }
 
@@ -113,7 +106,7 @@ class _CameraState extends ConsumerState<Camera> {
   Widget build(BuildContext context) {
     //Choose the biggest scale between the phone height and camera
     //height or the phone width and camera width - the biggest one
-    //will always ensure all white gaps are filled
+    //will always ensure all white gaps are filled around camera preview
     final scale = max(
         (MediaQuery.sizeOf(context).height + 2) /
             widget.controller.value.previewSize!.height,
@@ -137,7 +130,7 @@ class _CameraState extends ConsumerState<Camera> {
               pictureBeingTaken: pictureBeingTaken, takePicture: takePicture),
         ),
 
-        //Make sure flash button is underneath notification bar
+        //Make sure flash button is not hiddn by notification bar
         SafeArea(
           child: Align(
             alignment: Alignment.topLeft,
@@ -160,6 +153,7 @@ class _CameraState extends ConsumerState<Camera> {
 
 //Widget for Cropping the snapped picture
 class CropWidget extends StatefulWidget {
+  //Path to the image
   final String path;
   const CropWidget(this.path, {super.key});
 
@@ -169,14 +163,14 @@ class CropWidget extends StatefulWidget {
 
 class _CropWidgetState extends State<CropWidget> {
   final controller = CropController();
+  //Image being cropped
   late im.Image image;
+  //Initial angle
   double angle = 0;
   @override
   void initState() {
     //Load the taken picture
     image = im.decodeImage(File(widget.path).readAsBytesSync())!;
-    // //Rotate it 90° anticlockwise
-    // this.image = im.copyRotate(image, angle: 270);
     super.initState();
   }
 
@@ -194,7 +188,6 @@ class _CropWidgetState extends State<CropWidget> {
               image: im.encodeJpg(image),
               controller: controller,
               onCropped: (image) {
-                dev.log(angle.toString(), name: "ANGLE");
                 //Write cropped image to disk and exit Crop widget
                 File(widget.path).writeAsBytesSync(image, flush: true);
                 Navigator.of(context).pop();
@@ -209,6 +202,7 @@ class _CropWidgetState extends State<CropWidget> {
             ElevatedButton(
               onPressed: () {
                 setState(() {
+                  //Rotate image by 90
                   image = im.copyRotate(
                     image,
                     angle: 90,
@@ -233,7 +227,9 @@ class _CropWidgetState extends State<CropWidget> {
 }
 
 class CameraCaptureButton extends ConsumerWidget {
+  //Mutex lock for picture being taken
   final bool pictureBeingTaken;
+  //Callback to take a picture
   final Future<String> Function() takePicture;
 
   const CameraCaptureButton({
@@ -244,6 +240,7 @@ class CameraCaptureButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    //Get sheet music to add image
     final sheetMusic = ref.watch(sheetMusicProvider.notifier);
 
     return IconButton(
@@ -260,11 +257,6 @@ class CameraCaptureButton extends ConsumerWidget {
                 //Add image to temporarySheetMusicImages
                 sheetMusic.addImage(File(path));
 
-                //Log the entire list for testing purposes
-                dev.log(
-                  sheetMusic.toString(),
-                  name: "Sheet Music Images",
-                );
                 //Show dialog for next required actions
                 if (context.mounted) {
                   showDialog(

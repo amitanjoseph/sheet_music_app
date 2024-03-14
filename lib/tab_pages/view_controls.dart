@@ -12,7 +12,9 @@ import 'package:sheet_music_app/utils/music_utils.dart';
 import 'package:sheet_music_app/utils/player.dart';
 
 class SaveButton extends ConsumerStatefulWidget {
+  //The music being played
   final List<List<Note>> parts;
+  //The music images
   final List<List<File>> partImages;
   const SaveButton({super.key, required this.parts, required this.partImages});
 
@@ -37,6 +39,7 @@ class _SaveButtonState extends ConsumerState<SaveButton> {
 
   @override
   Widget build(BuildContext context) {
+    //Database handle
     final db = ref.watch(databaseProvider);
     return IconButton(
       icon: const Icon(Icons.save_outlined),
@@ -68,7 +71,6 @@ class _SaveButtonState extends ConsumerState<SaveButton> {
                             //Get the illegal character
                             final string =
                                 value.substring(element.start, element.end);
-                            dev.log(string, name: "REGEX MATCHES");
                             //If illegal character not identified yet, add it to accum
                             return accum.contains(string)
                                 ? accum
@@ -79,6 +81,7 @@ class _SaveButtonState extends ConsumerState<SaveButton> {
                               ? null
                               : "Invalid Characters: ${matches.join(" ")}";
                         }
+                        //Another error message to display
                         return "Name must be not empty.";
                       },
                     ),
@@ -96,6 +99,7 @@ class _SaveButtonState extends ConsumerState<SaveButton> {
                   onPressed: () async {
                     //If valid
                     if (_formKey.currentState!.validate()) {
+                      //Initialise variables for database insertion
                       final name = nameController.text;
                       final composer = composerController.text == ""
                           ? null
@@ -111,11 +115,11 @@ class _SaveButtonState extends ConsumerState<SaveButton> {
                           "$name.smn");
                       final smnBytes = makeSMN(widget.parts);
                       final bzip2Bytes = BZip2Encoder().encode(smnBytes);
-
                       await File(file).writeAsBytes(bzip2Bytes);
                       //Add to database
                       db.when(
                         data: (database) async {
+                          //Insert in database when handle is ready
                           final id = await models.SheetMusicModel(
                             name: name,
                             file: file,
@@ -126,6 +130,7 @@ class _SaveButtonState extends ConsumerState<SaveButton> {
                             keySig: keySig.toString(),
                             tempo: tempo,
                           ).insert(database);
+                          //For each image, insert into database correctly
                           for (final (partNo, part)
                               in widget.partImages.indexed) {
                             for (final (seqNo, image) in part.indexed) {
@@ -137,7 +142,6 @@ class _SaveButtonState extends ConsumerState<SaveButton> {
                                   .insert(database);
                             }
                           }
-                          dev.log("done");
                           //Close dialog
                           if (context.mounted) Navigator.of(context).pop();
                         },
@@ -146,9 +150,7 @@ class _SaveButtonState extends ConsumerState<SaveButton> {
                           dev.log("$error", name: "ERROR");
                           dev.log("$stackTrace", name: "STACKTRACE");
                         },
-                        loading: () {
-                          dev.log("loading db");
-                        },
+                        loading: () {},
                       );
                     }
                   },
@@ -200,7 +202,6 @@ class Controls extends ConsumerWidget {
               label: const Text("Key Signature"),
               onSelected: (value) async {
                 //Set key signature
-
                 await sheetMusicControls.setKeySig(value!);
               },
               width: 120,
@@ -264,7 +265,6 @@ class _PlaybackButtonState extends State<PlaybackButton> {
         ? IconButton(
             //Show paused button and start playing music
             onPressed: () async {
-              dev.log("play");
               _toggle();
               await widget.player.play();
             },
@@ -277,11 +277,12 @@ class _PlaybackButtonState extends State<PlaybackButton> {
             ),
           )
         : IconButton(
+            //Show play button and pause music
             onPressed: () {
-              dev.log("pause");
               _toggle();
               widget.player.pause();
             },
+            //Pause button icon
             icon: Icon(
               Icons.pause_outlined,
               size: 100,

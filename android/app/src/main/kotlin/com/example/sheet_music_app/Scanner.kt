@@ -1,6 +1,5 @@
 package com.example.sheet_music_app
 
-import android.util.Log
 import com.example.sheet_music_app.pigeon.Length
 import com.example.sheet_music_app.pigeon.Note
 import com.example.sheet_music_app.pigeon.Pitch
@@ -38,7 +37,6 @@ fun loadTemplateAssets(activity: FlutterActivity): List<Template> {
         Template(activity.assets.openFd(key).use {
             val bytes = it.createInputStream().readBytes()
             val i = Imgcodecs.imdecode(MatOfByte(*bytes), Imgcodecs.IMREAD_ANYCOLOR)
-            Log.d(item.key, i.channels().toString())
             i
         }, item.value)
     }
@@ -51,20 +49,8 @@ class Scanner(private val activity: FlutterActivity) : ScannerAPI {
         //Setup OpenCV
         OpenCVLoader.initDebug()
 
-//        //Get sheet music image key from assets to fetch the file
-//        val key = FlutterInjector.instance().flutterLoader()
-//            .getLookupKeyForAsset("images/sheet_music.jpg");
-//
-//
-//        //Get the actual image from a stream of bytes
-//        val img = activity.assets.openFd(key).use {
-//            val bytes = it.createInputStream().readBytes()
-//            Imgcodecs.imdecode(MatOfByte(*bytes), Imgcodecs.IMREAD_ANYCOLOR)
-//        }
-
         //Load the templates
         var templates = loadTemplateAssets(activity)
-
 
         //Load image
         val img = Imgcodecs.imread(imagePath)
@@ -78,7 +64,6 @@ class Scanner(private val activity: FlutterActivity) : ScannerAPI {
         //Find the 'peaks' of black
         val peaks = findPeaks(blacks)
 
-
         //Sort by how many black pixels there are in the row
         val stave = peaks.sortedByDescending { it.first }
             //Take the first 5
@@ -87,8 +72,6 @@ class Scanner(private val activity: FlutterActivity) : ScannerAPI {
 
         //Calculate Stave Height
         val staveHeight = calcStaveHeight(stave)
-        Log.d("Stave Height", staveHeight.toString())
-        Log.d("Original Template Size", templates.map { it.image.size() }.toString())
 
         //Resize templates to match stave height
         templates = templates.map { resize(it, staveHeight) }
@@ -96,14 +79,11 @@ class Scanner(private val activity: FlutterActivity) : ScannerAPI {
             preprocess(it.image)
         }
 
-
-        Log.d("New Template Size", templates.map { it.image.size() }.toString())
-
+        //Get pitches for each template
         val points = templates.map {
             Pair(it, getPitches(img, it, stave))
         }
 
-//
         //Change the image from greyscale to coloured
         Imgproc.cvtColor(img, img, Imgproc.COLOR_GRAY2RGB)
         //Draw a red line across the image for each
@@ -121,25 +101,16 @@ class Scanner(private val activity: FlutterActivity) : ScannerAPI {
             )
         }
         //notes is the final list of notes that gets returned
-        //Here information about each note is logged
         //Then the circle is drawn around the note head and the actual note is returned
         val notes = points.map {
             //Sort notes from left-to-right and output info
             it.second.sortedBy { it.second.y }.map { point ->
-                Log.d("Note", point.first.toString())
-                Log.d("Height", point.second.x.toString())
-                Log.d(
-                    "RelPitch",
-                    kotlin.math.round((196 - point.second.x) * 2 / staveHeight).toString()
-                )
                 Pair(it.first, point)
             }
         }.flatten()
             //Sort from left-to-right again
             .sortedBy { it.second.second.y }
             .map {
-                Log.d("Loc", it.second.toString())
-                Log.d("size", it.first.image.size().toString())
                 //Draw circle around note head
                 Imgproc.circle(
                     img,
@@ -163,14 +134,7 @@ class Scanner(private val activity: FlutterActivity) : ScannerAPI {
         //Convert to Greyscale
         Imgproc.cvtColor(image, image, Imgproc.COLOR_BGR2GRAY)
 
-        //Make lighting uniform
-//        val blur = Mat()
-//        Imgproc.GaussianBlur(image, blur, Size(5.0, 5.0), 0.0)
-//        Core.divide(image, blur, image, 255.0)
-
-        //Binarize Image
-//        Imgproc.threshold(image, image, 0.0, 255.0, Imgproc.THRESH_OTSU)
-//        Core.bitwise_not(image, image)
+        //Threshold
         Imgproc.adaptiveThreshold(
             image,
             image,
@@ -184,9 +148,6 @@ class Scanner(private val activity: FlutterActivity) : ScannerAPI {
         //Apply Morphological Close
         val strucElement2 = Imgproc.getStructuringElement(Imgproc.CV_SHAPE_ELLIPSE, Size(3.0, 3.0))
         Imgproc.morphologyEx(image, image, Imgproc.MORPH_OPEN, strucElement2)
-//        val strucElement1 =
-//            Imgproc.getStructuringElement(Imgproc.CV_SHAPE_ELLIPSE, Size(18.0, 15.0))
-//        Imgproc.morphologyEx(image, image, Imgproc.MORPH_CLOSE, strucElement1)
 
         //Invert the image colours as they were inverted to be able to perform the close
         Core.bitwise_not(image, image)
@@ -265,7 +226,6 @@ class Scanner(private val activity: FlutterActivity) : ScannerAPI {
     private fun resize(template: Template, newHeight: Double): Template {
         val out = template.copy()
         val factor = (newHeight / template.image.size().height)
-        Log.d("factor", factor.toString())
         Imgproc.resize(
             template.image,
             out.image,
@@ -330,7 +290,11 @@ class Scanner(private val activity: FlutterActivity) : ScannerAPI {
             Point(it.x + width / 2, it.y + height / 2)
         }.map {
             //Map each point to a pair of the pitch and its position
-            Pair(posToPitch(it.x - 9, stave), it)
+            if (template.length == Length.MINIM) {
+                Pair(posToPitch(it.x - 4, stave), it)
+            } else {
+                Pair(posToPitch(it.x - 9, stave), it)
+            }
         }.map {
             //Map each pitch to a note
             Pair(Note(it.first, template.length), it.second)

@@ -1,4 +1,3 @@
-import 'dart:developer' as dev;
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -19,24 +18,28 @@ class ViewTab extends ConsumerStatefulWidget {
 }
 
 class _ViewTabState extends ConsumerState<ViewTab> {
-  // late Future<List<List<Note?>>> tempFuture;
-  late Future<void> f;
+  //Object to handle actually playing notes from midi numbers
   final midi = FlutterMidi();
+  //Future to store music and images
   late Future<(List<List<Note>>, List<List<File>>)> music;
 
   @override
   void initState() {
     super.initState();
-    f = rootBundle.load("sf2/piano.sf2").then((bytes) async {
+    //Load soundfont piano sound for midi object to play
+    rootBundle.load("sf2/piano.sf2").then((bytes) async {
       await midi.prepare(sf2: bytes);
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    //Provider storing sheet music state
     final sheetMusic = ref.watch(sheetMusicProvider.notifier);
+    //If sheet music was previously saved
     final id = sheetMusic.getSheetMusicId();
     if (id != null) {
+      //Update dateViewed to today
       ref.watch(databaseProvider.future).then((db) async {
         var model = Map<String, Object?>.from((await db
             .query("SheetMusic", where: "id = ?", whereArgs: [id]))[0]);
@@ -45,23 +48,29 @@ class _ViewTabState extends ConsumerState<ViewTab> {
       });
     }
 
+    //Get music (either saved or unsaved)
     music = sheetMusic.getMusic();
 
-    //Render each part using the Part Widget
+    //Render each part using the Part Widget when music has loaded
     return FutureBuilder(
       future: music,
       builder: (context, snapshot) {
+        //If music has loaded
         if (snapshot.connectionState == ConnectionState.done) {
+          //Get notes and image parts
           final (notes, parts) = snapshot.data!;
+          //Initialise player
           final player = Player(notes, midi, ref);
-          dev.log(notes.map((e) => e.map((e) => e.pitch.name)).toString(),
-              name: "NOTES");
+          //Get all image parts that are non-empty
           final nonEmptyParts =
               parts.where((element) => element.isNotEmpty).toList();
+          //Render widgets (Stack used to allow save button to show on top)
           return Stack(
             children: [
+              //Place for parts
               Column(
                 children: [
+                  //Show each of the parts
                   Expanded(
                     child: ListView.builder(
                       itemBuilder: (context, partNo) =>
@@ -69,9 +78,11 @@ class _ViewTabState extends ConsumerState<ViewTab> {
                       itemCount: nonEmptyParts.length,
                     ),
                   ),
+                  //Render the controls for playback
                   Controls(player: player)
                 ],
               ),
+              //If sheet music is unsaved, show save button
               if (sheetMusic.stateIsUnsaved())
                 SafeArea(
                   child: Align(
@@ -84,6 +95,7 @@ class _ViewTabState extends ConsumerState<ViewTab> {
             ],
           );
         } else {
+          //Loading screen
           return const Center(child: CircularProgressIndicator());
         }
       },
@@ -93,7 +105,9 @@ class _ViewTabState extends ConsumerState<ViewTab> {
 
 //Renders each part as a list of images with a title as the Part No.
 class Part extends StatelessWidget {
+  //Images for this part
   final List<File> images;
+  //Which part it is
   final int partNo;
   const Part(this.images, this.partNo, {super.key});
 
@@ -113,6 +127,7 @@ class Part extends StatelessWidget {
             return Image.file(images[index]);
           },
           itemCount: images.length,
+          //Prevents needing to scroll through each separate part
           shrinkWrap: true,
           physics: const ClampingScrollPhysics(),
         )
